@@ -24,7 +24,6 @@ data PAST a
   | App (PAST a) (PAST a)
   | Constr Name
   | Lam a (PAST a)
-  | Func a (List Name) (PAST a)
   | Let
       IsRec
       (List (Tuple Name (PAST a)))
@@ -45,3 +44,10 @@ derive instance genericLit :: Generic Lit _
 instance showLit :: Show Lit where
   show x = genericShow x
 
+type Program = List CorePSC
+type CorePSC = PSC Name
+-- Parsed supercombinators
+data PSC a = Func a (List Name) (PAST a)
+derive instance genericPSC :: Generic (PSC a) _
+instance showPSC :: Show a => Show (PSC a) where
+  show x = genericShow x

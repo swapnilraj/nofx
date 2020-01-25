@@ -1,6 +1,6 @@
 module Parser where
 
-import Prelude(Unit, ($), (<>), pure, bind, discard, unit)
+import Prelude(Unit, ($), (<>), (==), pure, bind, discard, unit)
 
 import Control.Alt((<|>))
 import Control.Lazy(fix)
@@ -23,6 +23,9 @@ import Syntax
 
 lower :: Parser String Char
 lower = satisfy isLower <?> "identifier"
+
+newlines :: Parser String (Array Char)
+newlines = Array.some $ satisfy (_ == '\n') <?> "one or more newlines"
 
 lex :: TokenParser
 lex = makeTokenParser $ LanguageDef (unGenLanguageDef haskellStyle)
@@ -102,15 +105,6 @@ letE = do
        exprE <- expr unit
        pure $ Tuple binder exprE
 
-func :: Parser String CorePAST
-func = do
-  lex.reserved "fun"
-  fname <- lex.identifier
-  args <- lex.identifier `sepBy` lex.whiteSpace
-  lex.reservedOp "="
-  body <- expr unit
-  pure $ Func fname args body
-
 constructor :: Parser String CorePAST
 constructor = do
   name <- try multiLetterConstructor <|> singleLetterConstructor
@@ -149,3 +143,14 @@ caseE _ = do
        pure $ { caseTag: 0, vars: Nil, cons: d, rhs: t })
        `sepBy1` lex.symbol ";"
 
+func :: Parser String CorePSC
+func = do
+  lex.reserved "fun"
+  fname <- lex.identifier
+  args <- lex.identifier `sepBy` lex.whiteSpace
+  lex.reservedOp "="
+  body <- expr unit
+  pure $ Func fname args body
+
+supercombinators :: Parser String (List CorePSC)
+supercombinators = some func
