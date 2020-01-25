@@ -4,7 +4,6 @@ import Prelude
 
 import Data.List
 import Data.Tuple (Tuple(..))
-import Data.Tuple.Nested (Tuple3(..))
 import Data.Generic.Rep
 import Data.Generic.Rep.Show
 
@@ -23,9 +22,10 @@ data Expr a
   = Var Name
   | Num Int
   | App (Expr a) (Expr a)
-  | Constr Name
-          Int -- Tag
-          Int -- Arity of constructor
+  | Constr
+      Name
+      Int -- Tag
+      Int -- Arity of constructor
   | Lam a (Expr a)
   | Let
       IsRec
@@ -38,3 +38,8 @@ derive instance genericExpr :: Generic (Expr a) _
 instance showExpr :: Show a => Show (Expr a) where
   show x = genericShow x
 
+type CoreSC = SC Name
+data SC a = Func a (List Name) (Expr a)
+derive instance genericSC :: Generic (SC a) _
+instance showSC :: Show a => Show (SC a) where
+  show x = genericShow x
