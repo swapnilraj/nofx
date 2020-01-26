@@ -19,58 +19,59 @@ packConstructor = [ p "Cons" $ AST.Constr "Cons" 0 2
                   ]
                   where p = Tuple
 
-
-desugarParsedSCs :: S.Program -> List AST.CoreSC
-desugarParsedSCs pscs = desugarParsedSC <$> pscs
+desugarSCs :: S.Program -> List AST.CoreSC
+desugarSCs pscs = desugarSC <$> pscs
   where
-        desugarParsedSC (S.Func fname arg body)
-                          = AST.Func fname arg (desugarParsedExp body)
+        desugarSC (S.Func fname arg body)
+                          = AST.Func fname arg (desugarAST body)
 
-desugarParsedExp :: S.CorePAST -> AST.CoreExpr
-desugarParsedExp (S.Var n) = AST.Var n
-desugarParsedExp (S.App f e) = AST.App (desugarParsedExp f) (desugarParsedExp e)
-desugarParsedExp (S.Constr name) = unsafePartial $ fromJust $ lookup name packConstructor
-desugarParsedExp (S.Lam arg body) = AST.Lam arg (desugarParsedExp body)
-desugarParsedExp (S.Let rec bind body)
-  = AST.Let rec (desugarBinders <$> bind) (desugarParsedExp body)
-desugarParsedExp (S.Case sucritinise alters)
-  = AST.Case (desugarParsedExp sucritinise) (desugarAlters <$> alters)
-desugarParsedExp (S.If cond consequent alternative)
-  = AST.Case (desugarParsedExp cond) $
+desugarAST :: S.CorePAST -> AST.CoreExpr
+desugarAST (S.Var n) = AST.Var n
+desugarAST (S.App f e) = AST.App (desugarAST f) (desugarAST e)
+desugarAST (S.Constr name) = unsafePartial $ fromJust $ lookup name packConstructor
+desugarAST (S.Lam arg body) = AST.Lam arg (desugarAST body)
+desugarAST (S.Let rec bind body)
+  = AST.Let rec (desugarBinders <$> bind) (desugarAST body)
+desugarAST (S.Case sucritinise alters)
+  = AST.Case (desugarAST sucritinise) (desugarAlters <$> alters)
+desugarAST (S.If cond consequent alternative)
+  = AST.Case (desugarAST cond) $
       fromFoldable
         [ { caseTag: 2
           , vars: Nil
-          , rhs: (desugarParsedExp consequent)
+          , rhs: desugarAST consequent
           , cons: AST.Constr "true" 2 0
           }
         , { caseTag: 3
           , vars: Nil
-          , rhs: (desugarParsedExp alternative)
+          , rhs: desugarAST alternative
           , cons: AST.Constr "false" 3 0
           }
         ]
-desugarParsedExp (S.Lit (S.LInt num)) = AST.Num num
-desugarParsedExp (S.Lit (S.LBool bool)) = unsafePartial $ fromJust $ lookup (show bool) packConstructor
+desugarAST (S.Lit (S.LInt num)) = AST.Num num
+desugarAST (S.Lit (S.LBool bool)) = unsafePartial $
+                                    fromJust $
+                                    lookup (show bool) packConstructor
 
-desugarBinders (Tuple n exp) = Tuple n (desugarParsedExp exp)
-desugarAlters { cons, rhs } = { caseTag: unsafePartial $ getTag $
-                                         unsafePartial $ desugarParsedConstr
-                                         cons
+desugarBinders (Tuple n exp) = Tuple n (desugarAST exp)
+desugarAlters { cons, rhs } = { caseTag: unsafePartial $
+                                         getTag $
+                                         desugarConstr cons
                               , vars: unsafePartial $ collectVars cons
-                              , rhs: desugarParsedExp rhs
-                              , cons: desugarParsedExp cons
+                              , rhs: desugarAST rhs
+                              , cons: desugarAST cons
                               }
-
-getTag :: Partial => AST.CoreExpr -> Int
-getTag (AST.Constr _ tag _) = tag
-
-collectVars :: Partial => S.CorePAST -> List AST.Name
-collectVars = reverse <<< collectVars'
   where
-    collectVars' :: Partial => S.CorePAST -> List AST.Name
-    collectVars' (S.App (S.Constr _) (S.Var v)) = v : Nil
-    collectVars' (S.App cons (S.Var v)) = v : (collectVars cons)
+    getTag :: Partial => AST.CoreExpr -> Int
+    getTag (AST.Constr _ tag _) = tag
 
-desugarParsedConstr :: Partial => S.CorePAST -> AST.CoreExpr
-desugarParsedConstr (S.Constr n) = unsafePartial $ fromJust $ lookup n packConstructor
-desugarParsedConstr (S.App cons val) = desugarParsedConstr cons
+    desugarConstr :: Partial => S.CorePAST -> AST.CoreExpr
+    desugarConstr (S.Constr n) = unsafePartial $ fromJust $ lookup n packConstructor
+    desugarConstr (S.App cons val) = desugarConstr cons
+
+    collectVars :: Partial => S.CorePAST -> List AST.Name
+    collectVars = reverse <<< collectVars'
+      where
+        collectVars' :: Partial => S.CorePAST -> List AST.Name
+        collectVars' (S.App (S.Constr _) (S.Var v)) = v : Nil
+        collectVars' (S.App cons (S.Var v)) = v : (collectVars cons)
