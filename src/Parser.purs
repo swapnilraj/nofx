@@ -140,7 +140,7 @@ caseE _ = do
        d <- (expr unit)
        lex.reserved "=>"
        t <- expr unit
-       pure $ { caseTag: 0, vars: Nil, cons: d, rhs: t })
+       pure $ { cons: d, rhs: t })
        `sepBy1` lex.symbol ";"
 
 func :: Parser String CorePSC

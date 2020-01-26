@@ -9,10 +9,8 @@ import Data.Generic.Rep
 import Data.Generic.Rep.Show
 
 type Name = String
-type Alter a = List { caseTag :: Int
-             , vars :: List a
+type Alter a = List { cons :: PAST a -- Constructor
              , rhs :: PAST a
-             , cons :: PAST a -- Constructor
              }
 
 type IsRec = Boolean

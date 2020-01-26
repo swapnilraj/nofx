@@ -1,10 +1,10 @@
 module Desugar where
 
-import Prelude((<>), (<$>), ($), show)
+import Prelude((<>), (<$>), ($), (<<<), show)
 
 import Data.Maybe(Maybe(..), fromJust)
 import Data.Tuple (Tuple(..), lookup)
-import Data.List(List(..))
+import Data.List(List(..), (:), fromFoldable, reverse)
 
 import Partial.Unsafe(unsafePartial)
 
@@ -53,8 +53,24 @@ desugarParsedExp (S.Lit (S.LInt num)) = AST.Num num
 desugarParsedExp (S.Lit (S.LBool bool)) = unsafePartial $ fromJust $ lookup (show bool) packConstructor
 
 desugarBinders (Tuple n exp) = Tuple n (desugarParsedExp exp)
-desugarAlters { caseTag, cons, rhs, vars } = { caseTag: caseTag
-                                             , cons: desugarParsedExp cons
-                                             , rhs: desugarParsedExp rhs
-                                             , vars: vars
-                                             }
+desugarAlters { cons, rhs } = { caseTag: unsafePartial $ getTag $
+                                         unsafePartial $ desugarParsedConstr
+                                         cons
+                              , vars: unsafePartial $ collectVars cons
+                              , rhs: desugarParsedExp rhs
+                              , cons: desugarParsedExp cons
+                              }
+
+getTag :: Partial => AST.CoreExpr -> Int
+getTag (AST.Constr _ tag _) = tag
+
+collectVars :: Partial => S.CorePAST -> List AST.Name
+collectVars = reverse <<< collectVars'
+  where
+    collectVars' :: Partial => S.CorePAST -> List AST.Name
+    collectVars' (S.App (S.Constr _) (S.Var v)) = v : Nil
+    collectVars' (S.App cons (S.Var v)) = v : (collectVars cons)
+
+desugarParsedConstr :: Partial => S.CorePAST -> AST.CoreExpr
+desugarParsedConstr (S.Constr n) = unsafePartial $ fromJust $ lookup n packConstructor
+desugarParsedConstr (S.App cons val) = desugarParsedConstr cons
