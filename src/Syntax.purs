@@ -47,7 +47,7 @@ instance showLit :: Show Lit where
 type Program = List CorePSC
 type CorePSC = PSC Name
 -- Parsed supercombinators
-data PSC a = Func a (List Name) (PAST a)
+data PSC a = Func Name (List a) (PAST a)
 derive instance genericPSC :: Generic (PSC a) _
 instance showPSC :: Show a => Show (PSC a) where
   show x = genericShow x

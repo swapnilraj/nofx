@@ -39,7 +39,7 @@ instance showExpr :: Show a => Show (Expr a) where
   show x = genericShow x
 
 type CoreSC = SC Name
-data SC a = Func a (List Name) (Expr a)
+data SC a = Func Name (List a) (Expr a)
 derive instance genericSC :: Generic (SC a) _
 instance showSC :: Show a => Show (SC a) where
   show x = genericShow x
