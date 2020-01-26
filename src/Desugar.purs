@@ -12,10 +12,10 @@ import AST as AST
 import Syntax as S
 
 packConstructor :: Array (Tuple String AST.CoreExpr)
-packConstructor = [ p "Cons" (AST.Constr "Cons" 0 2)
-                  , p "Nil" (AST.Constr "Nil" 1 0)
-                  , p "true" (AST.Constr "true" 2 0)
-                  , p "false" (AST.Constr "false" 2 0)
+packConstructor = [ p "Cons" $ AST.Constr "Cons" 0 2
+                  , p "Nil" $ AST.Constr "Nil" 1 0
+                  , p "true" $ AST.Constr "true" 2 0
+                  , p "false" $ AST.Constr "false" 3 0
                   ]
                   where p = Tuple
 
@@ -36,7 +36,19 @@ desugarParsedExp (S.Let rec bind body)
 desugarParsedExp (S.Case sucritinise alters)
   = AST.Case (desugarParsedExp sucritinise) (desugarAlters <$> alters)
 desugarParsedExp (S.If cond consequent alternative)
-  = AST.Case (desugarParsedExp cond) Nil -- TODO: If -> Case
+  = AST.Case (desugarParsedExp cond) $
+      fromFoldable
+        [ { caseTag: 2
+          , vars: Nil
+          , rhs: (desugarParsedExp consequent)
+          , cons: AST.Constr "true" 2 0
+          }
+        , { caseTag: 3
+          , vars: Nil
+          , rhs: (desugarParsedExp alternative)
+          , cons: AST.Constr "false" 3 0
+          }
+        ]
 desugarParsedExp (S.Lit (S.LInt num)) = AST.Num num
 desugarParsedExp (S.Lit (S.LBool bool)) = unsafePartial $ fromJust $ lookup (show bool) packConstructor
 
