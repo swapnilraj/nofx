@@ -8,10 +8,12 @@ import Data.Generic.Rep
 import Data.Generic.Rep.Show
 
 type Name = String
-type Alter a = List { caseTag :: Int
+type Alter a = { caseTag :: Int
              , vars :: List a
              , rhs :: Expr a
              , cons :: Expr a -- Constructor
+             , arity :: Int
+             , name :: a
              }
 
 type IsRec = Boolean
@@ -26,14 +28,14 @@ data Expr a
       Name
       Int -- Tag
       Int -- Arity of constructor
-  | Lam a (Expr a)
+  | Lam (List a) (Expr a)
   | Let
       IsRec
       (List (Tuple Name (Expr a)))
       (Expr a)
   | Case
       (Expr a)
-      (Alter a)
+      (List (Alter a))
 derive instance genericExpr :: Generic (Expr a) _
 instance showExpr :: Show a => Show (Expr a) where
   show x = genericShow x
