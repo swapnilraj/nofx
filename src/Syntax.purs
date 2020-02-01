@@ -7,6 +7,7 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (Tuple3(..))
 import Data.Generic.Rep
 import Data.Generic.Rep.Show
+import Data.Generic.Rep.Eq
 
 type Name = String
 type Alter a = List { cons :: PAST a -- Constructor
@@ -21,7 +22,7 @@ data PAST a
   = Var Name
   | App (PAST a) (PAST a)
   | Constr Name
-  | Lam a (PAST a)
+  | Lam (List a) (PAST a)
   | Let
       IsRec
       (List (Tuple Name (PAST a)))
@@ -34,6 +35,8 @@ data PAST a
 derive instance genericPAST :: Generic (PAST a) _
 instance showPAST :: Show a => Show (PAST a) where
   show x = genericShow x
+instance eqPAST :: Eq a => Eq (PAST a) where
+  eq x = genericEq x
 
 data Lit
   = LInt Int
@@ -41,6 +44,8 @@ data Lit
 derive instance genericLit :: Generic Lit _
 instance showLit :: Show Lit where
   show x = genericShow x
+instance eqLit :: Eq Lit where
+  eq x = genericEq x
 
 type Program = List CorePSC
 type CorePSC = PSC Name

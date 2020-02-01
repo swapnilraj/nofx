@@ -84,10 +84,10 @@ ifThen = do
 lambda :: Parser String CorePAST
 lambda = do
   _ <- lex.symbol "\\"
-  arg <- lex.identifier
+  args <- lex.identifier `sepBy` lex.whiteSpace
   lex.reserved "->"
   body <- expr unit
-  pure $ Lam arg body
+  pure $ Lam args body
 
 letE :: Parser String CorePAST
 letE = do
