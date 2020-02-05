@@ -44,10 +44,10 @@ var = do
 
 inlineExpr :: Parser String CorePAST
 inlineExpr = fix \inline ->
-  choice [ lex.parens inline
+  choice [ try letE
          , constructor
          , try $ caseE unit
-         , try letE
+         , lex.parens $ expr unit
          , ifThen
          , lambda
          , var
