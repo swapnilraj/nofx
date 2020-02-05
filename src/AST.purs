@@ -16,6 +16,7 @@ type Alter a = { caseTag :: Int
              , name :: a
              }
 
+type CoreProgram = List CoreSC
 type IsRec = Boolean
 
 type CoreExpr = Expr Name

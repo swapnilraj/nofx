@@ -72,9 +72,9 @@ desugarAST (S.Lit (S.LBool bool)) = mkConstructor $
 
 desugarBinders (Tuple n exp) = Tuple n (desugarAST exp)
 desugarAlters { cons, rhs } = let { name, tag, arity }
-                                = unsafePartial $
-                                  fromJust $
-                                  lookup cons packConstructor
+                                    = unsafePartial $
+                                      fromJust $
+                                      lookup cons packConstructor
                               in { caseTag: tag
                                  , vars: unsafePartial $ collectVars $ cons
                                  , rhs: desugarAST rhs
