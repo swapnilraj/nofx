@@ -56,7 +56,7 @@ instance showAnnExpr' :: (Show b, Show a) => Show (AnnExpr' a b) where
   show x = genericShow x
 
 lambdaLift :: CoreProgram -> CoreProgram
-lambdaLift = collectSCs <<< abstract <<< freeVars
+lambdaLift = collectSCs <<< rename <<< abstract <<< freeVars
 
 bindersOf :: forall b r. (List (b /\ r)) -> List b
 bindersOf def = fst <$> def
@@ -194,3 +194,46 @@ collectSCsExpression (Case e alts)
 isLam :: CoreExpr -> Boolean
 isLam (Lam _ _) = true
 isLam _ = false
+
+rename :: CoreProgram -> CoreProgram
+rename prog
+  = snd $ mapAccuml renameSC initialNameSupply prog
+    where
+      renameSC ns (Func scName args rhs)
+        = let (ns1 /\ args' /\ env) = newNames ns args
+              (ns2 /\ rhs') = renameExpression env ns1 rhs
+          in (ns2 /\ Func scName args' rhs')
+
+renameExpression :: ASSOC Name Name -> NameSupply -> CoreExpr -> (NameSupply /\ CoreExpr)
+renameExpression _ ns (Num k) = ns /\ Num k
+renameExpression env ns (Var n) = case lookup n env of
+                          Just n' -> ns /\ Var n'
+                          Nothing -> ns /\ Var n
+renameExpression env ns (App e1 e2)
+  = let (ns1 /\ e1') = renameExpression env ns e1
+        (ns2 /\ e2') = renameExpression env ns1 e2
+    in ns2 /\ App e1' e2'
+renameExpression env ns (Lam args body)
+  = let (ns1 /\ args' /\ env') = newNames ns args
+        (ns2 /\ body') = renameExpression (env <> env') ns1 body
+    in ns2 /\ Lam args' body'
+renameExpression _ ns (Constr n t a) = ns /\ Constr n t a
+renameExpression env ns (Let isRec defs body)
+  = let (ns1 /\ body') = renameExpression env ns body
+        binders = bindersOf defs
+        (ns2 /\ binders' /\ env') = newNames ns1 binders
+        bodyEnv = env' <> env
+        rhsEnv | isRec = bodyEnv
+               | otherwise = env
+        (ns3 /\ rhs') = mapAccuml (renameExpression rhsEnv) ns2 (rhsOf defs)
+    in ns3 /\ Let isRec (zip binders' rhs') body'
+renameExpression env ns (Case e alts)
+  = let
+        renameAlt ns alter
+          = let (ns1 /\ vars' /\ env') = newNames ns alter.vars
+                (ns2 /\ rhs') = renameExpression (env' <> env) ns1 alter.rhs
+            in ns2 /\ alter { vars = vars', rhs = rhs' }
+
+        (ns1 /\ e') = renameExpression env ns e
+        (ns2 /\ alts') = mapAccuml renameAlt ns alts
+    in ns2 /\ Case e' alts'
