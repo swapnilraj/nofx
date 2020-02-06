@@ -5,8 +5,9 @@ import Prelude(class Show, (<$>), (<>), ($), (<<<), show, bind, discard, not, pu
 import Data.List(List(..), (:), concatMap, filter, foldl, null, zip)
 import Data.Set(Set(..), delete, difference, empty, fromFoldable, insert,
 member, union, unions, singleton, toUnfoldable)
-import Data.Tuple(Tuple(..), fst, snd)
+import Data.Tuple(Tuple(..), fst, snd, lookup)
 import Data.Tuple.Nested
+import Data.Maybe(Maybe(..))
 import Data.Generic.Rep
 import Data.Generic.Rep.Show
 
@@ -57,10 +58,10 @@ instance showAnnExpr' :: (Show b, Show a) => Show (AnnExpr' a b) where
 lambdaLift :: CoreProgram -> CoreProgram
 lambdaLift = collectSCs <<< abstract <<< freeVars
 
-bindersOf :: forall b r. (List (Tuple b r)) -> List b
+bindersOf :: forall b r. (List (b /\ r)) -> List b
 bindersOf def = fst <$> def
 
-rhsOf :: forall b r. (List (Tuple b r)) -> List r
+rhsOf :: forall b r. (List (b /\ r)) -> List r
 rhsOf def = snd <$> def
 
 freeVars :: CoreProgram -> AnnProgram Name (Set Name)
@@ -123,21 +124,23 @@ abstract prog = ado
     in (Func scName args (abstractExpression rhs))
 
 abstractExpression :: AnnExpr Name (Set Name) -> CoreExpr
-abstractExpression (Tuple _ (AVar v)) = Var v
-abstractExpression (Tuple _ (ANum n)) = Num n
-abstractExpression (Tuple _ (AApp e1 e2))
+abstractExpression (_ /\ (AVar v)) = Var v
+abstractExpression (_ /\ (ANum n)) = Num n
+abstractExpression (_ /\ (AApp e1 e2))
   = App (abstractExpression e1) (abstractExpression e2)
-abstractExpression (Tuple _ (AConstr t a n)) = Constr t a n
-abstractExpression (Tuple free (ALam args body))
+abstractExpression (_ /\ (AConstr t a n)) = Constr t a n
+abstractExpression (free /\ (ALam args body))
   = let fvList = toUnfoldable free
-        sc = Let false (Cons (Tuple "sc" scRhs) Nil) (Var "sc")
+        sc = Let false (Cons ("sc" /\ scRhs) Nil) (Var "sc")
         scRhs = Lam (fvList <> args) (abstractExpression body)
-    in foldl App scRhs (Var <$> fvList)
-abstractExpression (Tuple _ (ALet isRec defs body))
-  = let defs' = abstractDefs <$> (defs)
-        abstractDefs (Tuple n exp) = Tuple n $ abstractExpression exp
+    in foldl App sc (Var <$> fvList)
+abstractExpression (_ /\ (ALet isRec defs body))
+  = let defs' = abstractDefs defs
+        abstractDefs defs =
+          ado (name /\ rhs) <- defs
+          in   name /\ (abstractExpression rhs)
     in Let isRec defs' (abstractExpression body)
-abstractExpression (Tuple _ (ACase e alts))
+abstractExpression (_ /\ (ACase e alts))
   = let abstractAlts { caseTag, vars, rhs, cons, arity, name }
           = { caseTag: caseTag
             , vars: vars
@@ -150,31 +153,31 @@ abstractExpression (Tuple _ (ACase e alts))
 
 collectSCs prog = concatMap collectOneSC prog
   where collectOneSC (Func scName args rhs) = (Func scName args rhs') : scs
-          where (Tuple scs rhs') = collectSCsExpression rhs
+          where (scs /\ rhs') = collectSCsExpression rhs
 
-collectSCsExpression :: CoreExpr -> Tuple (List CoreSC) CoreExpr
+collectSCsExpression :: CoreExpr -> (List CoreSC) /\ CoreExpr
 collectSCsExpression (Num k) = p Nil $ Num k
 collectSCsExpression (Var n) = p Nil $ Var n
 collectSCsExpression (App e1 e2)
-  = let (Tuple scs1 e1') = collectSCsExpression e1
-        (Tuple scs2 e2') = collectSCsExpression e2
+  = let (scs1 /\ e1') = collectSCsExpression e1
+        (scs2 /\ e2') = collectSCsExpression e2
     in p (scs1 <> scs2) $ App e1' e2'
 collectSCsExpression (Lam args body)
-  = let (Tuple scs body') = collectSCsExpression body
+  = let (scs /\ body') = collectSCsExpression body
     in p scs $ Lam args body'
 collectSCsExpression (Constr n t a) = p Nil $ Constr n t a
 collectSCsExpression (Let isRec defs body)
-  = let collectSCsExpressionDef scs (Tuple name rhs)
-          = let (Tuple rhsScs rhs') = collectSCsExpression rhs
-              in Tuple (scs <> rhsScs) (Tuple name rhs)
+  = let collectSCsExpressionDef scs (name /\ rhs)
+          = let (rhsScs /\ rhs') = collectSCsExpression rhs
+              in (scs <> rhsScs) /\ (name /\ rhs)
 
-        (Tuple rhssScs defs') = mapAccuml collectSCsExpressionDef Nil defs
-        scs'     = filter (\(Tuple name rhs) -> isLam rhs) defs'
-        nonScs'  = filter (\(Tuple name rhs) -> not (isLam rhs)) defs'
-        localScs = unsafePartial $ (\(Tuple name (Lam args body)) ->
+        (rhssScs /\ defs') = mapAccuml collectSCsExpressionDef Nil defs
+        scs'     = filter (\(name /\ rhs) -> isLam rhs) defs'
+        nonScs'  = filter (\(name /\ rhs) -> not (isLam rhs)) defs'
+        localScs = unsafePartial $ (\(name /\ (Lam args body)) ->
                                      (Func name args body)) <$> scs'
 
-        (Tuple bodyScs body') = collectSCsExpression body
+        (bodyScs /\ body') = collectSCsExpression body
 
     in p (bodyScs <> localScs <> rhssScs) $ (Let isRec nonScs' body')
           {-- if null nonScs' --}
@@ -182,10 +185,10 @@ collectSCsExpression (Let isRec defs body)
           {--   else (Let isRec nonScs' body') --}
 collectSCsExpression (Case e alts)
   = let collectSCs_alt scs alters
-          = let (Tuple scs_rhs rhs') = collectSCsExpression alters.rhs
+          = let (scs_rhs /\ rhs') = collectSCsExpression alters.rhs
             in p (scs <> scs_rhs) $ alters { rhs = rhs' }
-        (Tuple scsE e') = collectSCsExpression e
-        (Tuple scsAlters alts') = mapAccuml collectSCs_alt Nil alts
+        (scsE /\ e') = collectSCsExpression e
+        (scsAlters /\ alts') = mapAccuml collectSCs_alt Nil alts
     in p (scsE <> scsAlters) $ Case e' alts'
 
 isLam :: CoreExpr -> Boolean
