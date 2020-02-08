@@ -34,6 +34,9 @@ lex = makeTokenParser $ LanguageDef (unGenLanguageDef haskellStyle)
                 , reservedNames   = [ "let","rec","in","if","then","else"
                                     , "fun","data","type","case", "of"
                                     , "true","false"
+                                    , "add", "sub", "mul", "div", "neg"
+                                    , "eq", "neq"
+                                    , "lt", "leq", "gt", "geq"
                                     ]
                 }
 

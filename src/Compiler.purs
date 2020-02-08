@@ -42,10 +42,16 @@ data Instruction
   | Alloc Int
   | Update Int
   | Eval
+  | Add | Sub | Mul | Div | Neg
+  | Eq  | Neq
+  | Lt | Leq | Gt | Geq
   | Cond GmCode GmCode
   | Pack Int Int
-  | Casejump (List Int /\ GmCode)
+  | Casejump (List (Int /\ GmCode))
   | Split Int
+derive instance genericInstruction :: Generic (Instruction) _
+instance showInstruction :: Show (Instruction) where
+  show x = genericShow x
 
 data Node
   = NNum Int
