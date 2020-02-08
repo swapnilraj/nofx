@@ -12,6 +12,8 @@ mapAccuml f b (Cons x xs)
         (Tuple b2 xs') = mapAccuml f b1 xs
     in Tuple b $ Cons x' xs'
 
+type Heap a = Int /\ List Int /\ List (Int /\ a)
+
 data NameSupply = MkNS Int
 
 type ASSOC a b = List (Tuple a b)
