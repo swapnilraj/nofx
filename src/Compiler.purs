@@ -21,6 +21,14 @@ type GmHeap = Heap Node
 type GmGlobals = ASSOC Name Addr
 type GmStats = Int
 
+data GmCompiledSC = CompSC Name Int GmCode
+derive instance genericGmCompiledSC :: Generic (GmCompiledSC) _
+instance showGmCompiledSC :: Show (GmCompiledSC) where
+  show x = genericShow x
+
+type GmEnvironment = ASSOC Name Int
+type GmCompiler = CoreExpr -> GmEnvironment -> GmCode
+
 type GmState
   = { output  :: GmOutput
     , code    :: GmCode
