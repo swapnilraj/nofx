@@ -219,10 +219,11 @@ renameExpression env ns (Lam args body)
     in ns2 /\ Lam args' body'
 renameExpression _ ns (Constr n t a) = ns /\ Constr n t a
 renameExpression env ns (Let isRec defs body)
-  = let (ns1 /\ body') = renameExpression env ns body
-        binders = bindersOf defs
+  = let binders = bindersOf defs
+        (ns1 /\ _) = renameExpression env ns body -- Hack to bring ns1 into scope
         (ns2 /\ binders' /\ env') = newNames ns1 binders
         bodyEnv = env' <> env
+        (_ /\ body') = renameExpression bodyEnv ns body -- Correct body'
         rhsEnv | isRec = bodyEnv
                | otherwise = env
         (ns3 /\ rhs') = mapAccuml (renameExpression rhsEnv) ns2 (rhsOf defs)
