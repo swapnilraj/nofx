@@ -71,8 +71,8 @@ freeVars prog = ado
 
 freeVarsExpression :: (Set Name) -> CoreExpr -> AnnExpr Name (Set Name)
 freeVarsExpression lv (Var n)
-  | member n lv = p (singleton n) $ AVar n
-  | otherwise = p empty $ AVar n
+  | member n lv = p empty $ AVar n
+  | otherwise = p (singleton n) $ AVar n
 freeVarsExpression lv (Num n) = p empty $ ANum n
 freeVarsExpression lv (App e1 e2)
   = let e1' = freeVarsExpression lv e1
