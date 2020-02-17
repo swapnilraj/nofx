@@ -13,7 +13,7 @@ import Data.Generic.Rep.Show
 
 import Debug.Trace
 
-import Partial.Unsafe(unsafeCrashWith, unsafePartial)
+import Partial.Unsafe(unsafePartial)
 
 import Utility
 import AST

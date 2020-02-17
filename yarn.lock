@@ -779,6 +779,11 @@ purescript@^0.13.6:
   dependencies:
     purescript-installer "^0.2.0"
 
+purty@^4.6.0:
+  version "4.6.0"
+  resolved "https://registry.yarnpkg.com/purty/-/purty-4.6.0.tgz#09602c4a3be5ea8a5619411bebeb447fdbd31e8f"
+  integrity sha512-bFpXrH+uHJZGzuiK1yXytpzSKtUWnDN7qgaLRyF32dEejSBXrIRq1FYrQDqLCs6wq4+vz305L9aZKk0O2z5wog==
+
 qs@~6.5.2:
   version "6.5.2"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.5.2.tgz#cb3ae806e8740444584ef154ce8ee98d403f3e36"
