@@ -143,15 +143,21 @@ compileE (Var v) args
                             Push (unsafePartial $ fromJust $ lookup v args)
   | otherwise = singleton $ PushGlobal v
 compileE (Constr n t 0) _ = fromFoldable [Pack t 0]
+compileE (App (Var "neg") e) args = compileE e args <> singleton Neg
+compileE (App (App (Var "add") e1) e2) args
+  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Add
+compileE (App (App (Var "sub") e1) e2) args
+  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Sub
+compileE (App (App (Var "mul") e1) e2) args
+  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Mul
+compileE (App (App (Var "div") e1) e2) args
+  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Div
 compileE inst@(App (App (Var op) e1) e2) args
   = case lookup op builtInDyadic of
       Just op' -> compileE e2 args <>
                   compileE e1 (argOffset 1 args) <>
                   singleton op'
       Nothing -> compileC inst args
-compileE (App (Var "neg") e) args = compileE e args <> singleton Neg
-compileE (App (App (Var "add") e1) e2) args
-  = compileE e1 args <> compileE e2 args <> singleton Add
 compileE (Let isRec defs e) args
   | isRec = unsafePartial (compileLetRec compileE defs e args)
   | otherwise = compileLet compileE defs e args
@@ -247,7 +253,7 @@ compiledPrimitives :: List GmCompiledSC
 compiledPrimitives
   = compiledDyadic <>
     (singleton $
-      CompSC "neq" 2 $
+      CompSC "neg" 2 $
         fromFoldable [Push 1, Eval, Push 1, Eval, Neq, Update 2, Pop 2, Unwind])
   where
     compiledDyadic
