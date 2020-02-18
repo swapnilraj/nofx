@@ -11,8 +11,6 @@ import Data.Maybe(Maybe(..), fromJust)
 import Data.Generic.Rep
 import Data.Generic.Rep.Show
 
-import Debug.Trace
-
 import Partial.Unsafe(unsafePartial)
 
 import Utility
@@ -122,7 +120,7 @@ allocateSc heap (CompSC name nargs instns)
 
 buildInitialHeap :: CoreProgram -> (GmHeap /\ GmGlobals)
 buildInitialHeap prog
-  = mapAccuml allocateSc hInitial $ trace (show compiled) \_ -> compiled
+  = mapAccuml allocateSc hInitial compiled
   where compiled = (compileSc <$> prog) <> compiledPrimitives
 
 compileSc :: CoreSC -> GmCompiledSC

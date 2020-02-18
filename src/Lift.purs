@@ -25,7 +25,6 @@ import Partial.Unsafe (unsafePartial)
 import AST
 import Utility
 
-import Debug.Trace
 
 type AnnAlter a b
   = { caseTag :: Int
@@ -97,7 +96,7 @@ freeVarsExpression lv (Num n) = p empty $ ANum n
 freeVarsExpression lv (App e1 e2) =
   let
     e1' = freeVarsExpression lv e1
-    e2' = trace (show (freeVarsExpression lv e2)) \_ -> (freeVarsExpression lv e2)
+    e2' = freeVarsExpression lv e2
   in
     (p (union (freeVarsOf e1') (freeVarsOf e2')) (AApp e1' e2'))
 freeVarsExpression lv (Constr n t a) = p empty $ AConstr n t a
