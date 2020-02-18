@@ -74,6 +74,20 @@ derive instance genericAnnExpr' :: Generic (AnnExpr' a b) _
 instance showAnnExpr' :: (Show b, Show a) => Show (AnnExpr' a b) where
   show x = genericShow x
 
+globalOperators :: Set Name
+globalOperators = fromFoldable
+  [ "add"
+  , "sub"
+  , "mul"
+  , "div"
+  , "eq"
+  , "neq"
+  , "lt"
+  , "le"
+  , "gt"
+  , "geq"
+  ]
+
 lambdaLift :: CoreProgram -> CoreProgram
 lambdaLift = collectSCs <<< abstract <<< freeVars
 
@@ -86,7 +100,8 @@ rhsOf def = snd <$> def
 freeVars :: CoreProgram -> AnnProgram Name (Set Name)
 freeVars prog = ado
   (Func scName args body) <- prog
-  in (AnnFunc scName args (freeVarsExpression (fromFoldable args) body))
+  in (AnnFunc scName args $
+      freeVarsExpression (union (fromFoldable args) globalOperators) body)
 
 freeVarsExpression :: (Set Name) -> CoreExpr -> AnnExpr Name (Set Name)
 freeVarsExpression lv (Var n)
