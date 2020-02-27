@@ -1,6 +1,6 @@
 module Compiler where
 
-import Prelude(class Show, show, (<$>), (<>), ($), (-), (+), (==), flip, otherwise)
+import Prelude(class Show, class Eq, show, (<$>), (<>), ($), (-), (+), (==), flip, otherwise)
 
 import Control.Apply
 
@@ -10,15 +10,16 @@ import Data.Tuple.Nested
 import Data.Maybe(Maybe(..), fromJust)
 import Data.Generic.Rep
 import Data.Generic.Rep.Show
+import Data.Generic.Rep.Eq
 
-import Partial.Unsafe(unsafePartial)
+import Partial.Unsafe(unsafePartial, unsafeCrashWith)
 
 import Utility
 import AST
 
+import Debug.Trace
 type GmCode = List Instruction
-type GmOutput = List Char
-type Addr = Int
+type GmOutput = String
 type GmStack = List Addr
 
 type GmDumpItem = GmCode /\ GmStack
@@ -65,9 +66,12 @@ data Instruction
   | Pack Int Int
   | Casejump (List (Int /\ GmCode))
   | Split Int
+  | Print
 derive instance genericInstruction :: Generic (Instruction) _
 instance showInstruction :: Show (Instruction) where
   show x = genericShow x
+instance eqInstruction :: Eq (Instruction) where
+  eq x y = genericEq x y
 
 data Node
   = NNum Int
@@ -81,7 +85,7 @@ instance showNode :: Show (Node) where
 
 compile :: CoreProgram -> GmState
 compile prog
-  = { output: Nil
+  = { output: ""
     , code: initialCode
     , stack: Nil
     , dump: Nil
@@ -96,16 +100,7 @@ initialStat :: GmStats
 initialStat = 0
 
 initialCode :: GmCode
-initialCode = fromFoldable [PushGlobal "main", Eval]
-
-hAlloc :: forall a. Heap a -> a -> (Heap a /\ Addr)
-hAlloc = unsafePartial $ hAlloc'
-  where
-    hAlloc' :: Partial => forall a. Heap a -> a -> (Heap a /\ Addr)
-    hAlloc' (size /\ (next:free) /\ cts) n =
-        (((size+1) /\ (free /\ (next /\ n) : cts)) /\ next)
-
-hInitial = (0 /\ (1..100) /\ Nil)
+initialCode = fromFoldable [PushGlobal "main", Eval, Print]
 
 aDomain :: forall a b. ASSOC a b -> List a
 aDomain alist = ado (a /\ b) <- alist in a
@@ -117,6 +112,14 @@ allocateSc :: GmHeap -> GmCompiledSC -> (GmHeap /\ (Name /\ Addr))
 allocateSc heap (CompSC name nargs instns)
   = heap' /\ (name /\ addr)
   where (heap' /\ addr) = hAlloc heap (NGlobal nargs instns)
+
+allocNodes :: Int -> GmHeap -> (GmHeap /\ List Addr)
+allocNodes 0 heap = heap /\ Nil
+allocNodes v heap =
+  let n = v - 1
+      (heap1 /\ as) = allocNodes n heap
+      (heap2 /\ a) = hAlloc heap1 (NInd hNull)
+  in (heap2 /\ a:as)
 
 buildInitialHeap :: CoreProgram -> (GmHeap /\ GmGlobals)
 buildInitialHeap prog
@@ -145,13 +148,15 @@ compileE (Var v) args
 compileE (Constr n t 0) _ = fromFoldable [Pack t 0]
 compileE (App (Var "neg") e) args = compileE e args <> singleton Neg
 compileE (App (App (Var "add") e1) e2) args
-  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Add
+  = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Add
 compileE (App (App (Var "sub") e1) e2) args
-  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Sub
+  = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Sub
 compileE (App (App (Var "mul") e1) e2) args
-  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Mul
+  = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Mul
 compileE (App (App (Var "div") e1) e2) args
-  = compileE e1 args <> compileE e2 (argOffset 1 args) <> singleton Div
+  = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Div
+compileE (App (App (Var "eq") e1) e2) args
+  = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Eq
 compileE inst@(App (App (Var op) e1) e2) args
   = case lookup op builtInDyadic of
       Just op' -> compileE e2 args <>
@@ -164,7 +169,9 @@ compileE (Let isRec defs e) args
 compileE (Case e alts) args = compileE e args <>
                               (singleton $ Casejump $ compileAlts compileE' alts args)
 compileE node@(App e1 e2) args
-  | unsafePartial (saturatedCons (makeSpine node)) = compileCS (reverse (makeSpine node)) args
+  | unsafePartial (saturatedCons (makeSpine node)) =
+  let t = trace (show (makeSpine node)) $ \_ -> (makeSpine node)
+      in compileCS (reverse (makeSpine node)) args
   | otherwise = compileC e2 args <> compileC e1 (argOffset 1 args) <> singleton Mkap
 compileE e args = compileC e args <> singleton Eval
 
@@ -195,6 +202,7 @@ compileC = unsafePartial $ compileC'
       | elem v (aDomain args) = singleton $
                                 Push (unsafePartial $ fromJust $ lookup v args)
       | otherwise = singleton $ PushGlobal v
+    compileC' g args = trace (show g <> " " <> show args) \_ -> unsafeCrashWith "Crashd"
 
 compileLet :: GmCompiler -> List (Name /\ CoreExpr) -> GmCompiler
 compileLet comp defs expr args
