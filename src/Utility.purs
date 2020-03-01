@@ -66,7 +66,7 @@ hAlloc = unsafePartial $ hAlloc'
     hAlloc' (size /\ (next:free) /\ cts) n =
         (((size+1) /\ (free /\ (next /\ n) : cts)) /\ next)
 
-hInitial = (0 /\ (1..100) /\ Nil)
+hInitial = (0 /\ (1..500) /\ Nil)
 
 hNull = 0
 
