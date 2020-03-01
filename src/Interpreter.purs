@@ -2,12 +2,11 @@ module Interpreter where
 
 import Prelude (class Eq, class Ord, (+), (-), (*), (/), (<>), (==), (/=), (<), (<=), (>), (>=), (<<<), ($), (<$>), negate, show, otherwise)
 
-import Data.List (List(..), (:), (!!), drop, head, length, null, singleton, tail, take)
+import Data.List (List(..), (:), (!!), drop, head, last, length, null, singleton, tail, take)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (lookup)
 import Data.Tuple.Nested
 
-import Debug.Trace
 import Partial.Unsafe(unsafeCrashWith, unsafePartial)
 
 import AST
@@ -49,11 +48,11 @@ dispatch (Mul)           = arithmetic2 (*)
 dispatch (Div)           = arithmetic2 (/)
 dispatch (Neg)           = arithmetic1 (negate)
 dispatch (Eq)            = comparison (==)
-{-- dispatch (Neq)           = binaryOp (/=) --}
-{-- dispatch (Lt)            = binaryOp (<) --}
+dispatch (Neq)           = comparison (/=)
+dispatch (Lt)            = comparison (<)
 dispatch (Leq)           = comparison (<=)
-{-- dispatch (Gt)            = binaryOp (>) --}
-{-- dispatch (Geq)           = binaryOp (>=) --}
+dispatch (Gt)            = comparison (>)
+dispatch (Geq)           = comparison (>=)
 dispatch x              = unsafeCrashWith $ "No such instruction " <> show x
 
 pushglobal :: Name -> GmState -> GmState
@@ -173,9 +172,17 @@ unwind s =
                               _ -> unsafeCrashWith ""
     newState (NInd a1) =  s { code = singleton Unwind, stack = (a1:as) }
     newState (NAp a1 a2) = s { code = singleton Unwind, stack = (a1:a:as) }
-    newState (NGlobal n c)
-      | (length (a:as)-1) < n = unsafeCrashWith "unwinding undersaturated"
-      | otherwise = s { code = c, stack = rearrange n s.heap (a:as) }
+    newState (NGlobal n c')
+      | (length as >= n) = s { code = c', stack = rearrange n s.heap (a:as) }
+      | otherwise =
+        let stack' = case (last (s.stack <> s')) of
+                          Just s -> s
+                          Nothing -> unsafeCrashWith "Not enough arguments on stack 4"
+        in s { dump = ds, code = c, stack = singleton stack' }
+      where
+        (c /\ s' /\ ds) = case s.dump of
+                              (c /\ s'):ds -> (c /\ s' /\ ds)
+                              _ -> unsafeCrashWith ""
 
 getArg :: Node -> Addr
 getArg (NAp a1 a2) = a2
@@ -205,10 +212,10 @@ print s = newState (hLookup s.heap a)
         printcode 0 = Nil
         printcode n = (Eval : Print : (printcode (n-1)))
 
-binaryOp :: forall a b. Eq a => Ord a => (b -> GmState -> GmState) -- boxing
-           -> (Addr -> GmState -> a)    -- unboxing
-           -> (a -> a -> b)             -- op
-           -> (GmState -> GmState)      -- state trans
+binaryOp :: forall a b. Eq a => Ord a => (b -> GmState -> GmState)
+           -> (Addr -> GmState -> a)
+           -> (a -> a -> b)
+           -> (GmState -> GmState)
 binaryOp box unbox op s
   = box (op (unbox a0 s) (unbox a1 s)) s { stack = as }
   where
@@ -216,10 +223,10 @@ binaryOp box unbox op s
                       a0:a1:as -> (a0 /\ a1 /\ as)
                       _ -> unsafeCrashWith ""
 
-unaryOp :: forall a b.(b -> GmState -> GmState)    -- boxing func
-        -> (Addr -> GmState -> a)       -- unboxing func
-        -> (a -> b)                     -- operator
-        -> (GmState -> GmState)         -- state transition
+unaryOp :: forall a b.(b -> GmState -> GmState)
+        -> (Addr -> GmState -> a)
+        -> (a -> b)
+        -> (GmState -> GmState)
 unaryOp box unbox op s
   = box (op (unbox a s)) (s { stack = as })
   where
@@ -253,8 +260,6 @@ arithmetic2 = binaryOp boxInteger unboxInteger
 
 arithmetic1 = unaryOp boxInteger unboxInteger
 
-{-- {-1- comparison :: fo(a -> a -> Boolean) -> GmState -> GmState -1-} --}
 comparison op = binaryOp boxBoolean unboxInteger op'
   where op' x y | op x y = true
                 | otherwise = false
-{-- {-1- comparisonEq = comparison (==) -1-} --}
