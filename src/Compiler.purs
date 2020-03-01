@@ -17,7 +17,6 @@ import Partial.Unsafe(unsafePartial, unsafeCrashWith)
 import Utility
 import AST
 
-import Debug.Trace
 type GmCode = List Instruction
 type GmOutput = String
 type GmStack = List Addr
@@ -141,12 +140,6 @@ compileE' offset expr args
 
 compileE :: GmCompiler
 compileE (Num n) args = fromFoldable [PushInt n]
-compileE (Var v) args
-  | elem v (aDomain args) = singleton $
-                            Push (unsafePartial $ fromJust $ lookup v args)
-  | otherwise = singleton $ PushGlobal v
-compileE (Constr n t 0) _ = fromFoldable [Pack t 0]
-compileE (App (Var "neg") e) args = compileE e args <> singleton Neg
 compileE (App (App (Var "add") e1) e2) args
   = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Add
 compileE (App (App (Var "sub") e1) e2) args
@@ -157,6 +150,7 @@ compileE (App (App (Var "div") e1) e2) args
   = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Div
 compileE (App (App (Var "eq") e1) e2) args
   = compileE e2 args <> compileE e1 (argOffset 1 args) <> singleton Eq
+compileE (App (Var "neg") e) args = compileE e args <> singleton Neg
 compileE inst@(App (App (Var op) e1) e2) args
   = case lookup op builtInDyadic of
       Just op' -> compileE e2 args <>
@@ -168,11 +162,6 @@ compileE (Let isRec defs e) args
   | otherwise = compileLet compileE defs e args
 compileE (Case e alts) args = compileE e args <>
                               (singleton $ Casejump $ compileAlts compileE' alts args)
-compileE node@(App e1 e2) args
-  | unsafePartial (saturatedCons (makeSpine node)) =
-  let t = trace (show (makeSpine node)) $ \_ -> (makeSpine node)
-      in compileCS (reverse (makeSpine node)) args
-  | otherwise = compileC e2 args <> compileC e1 (argOffset 1 args) <> singleton Mkap
 compileE e args = compileC e args <> singleton Eval
 
 makeSpine (App e1 e2) = makeSpine e1 <> singleton e2
@@ -192,17 +181,19 @@ compileC = unsafePartial $ compileC'
   where
     compileC' :: Partial => GmCompiler
     compileC' (Num n) _ = singleton $ PushInt n
-    compileC' (App e1 e2) args = compileC e2 args <>
-                                compileC e1 (argOffset 1 args) <>
-                               singleton Mkap
-    compileC' (Let isRec defs e) args
-      | isRec = unsafePartial $ compileLetRec compileC defs e args
-      | otherwise = compileLet compileC defs e args
+    compileC' (Constr n t 0) _ = singleton $ Pack t 0
     compileC' (Var v) args
       | elem v (aDomain args) = singleton $
                                 Push (unsafePartial $ fromJust $ lookup v args)
       | otherwise = singleton $ PushGlobal v
-    compileC' g args = trace (show g <> " " <> show args) \_ -> unsafeCrashWith "Crashd"
+    compileC' (Let isRec defs e) args
+      | isRec = unsafePartial $ compileLetRec compileC defs e args
+      | otherwise = compileLet compileC defs e args
+    compileC' node@(App e1 e2) args
+      | unsafePartial (saturatedCons (makeSpine node)) =
+          compileCS (reverse (makeSpine node)) args
+      | otherwise = compileC e2 args <> compileC e1 (argOffset 1 args) <> singleton Mkap
+    compileC' g args = unsafeCrashWith "Crashd"
 
 compileLet :: GmCompiler -> List (Name /\ CoreExpr) -> GmCompiler
 compileLet comp defs expr args
