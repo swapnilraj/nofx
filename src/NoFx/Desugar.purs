@@ -48,6 +48,7 @@ desugarAST (S.Lam args body) = AST.Lam args (desugarAST body)
 desugarAST (S.Let rec bind body) = AST.Let rec (desugarBinders <$> bind) (desugarAST body)
 desugarAST (S.Case sucritinise alters) = AST.Case (desugarAST sucritinise) (desugarAlters <$> alters)
 desugarAST (S.If cond consequent alternative) =
+  {-- AST.App (AST.Var "if") (AST.App) --}
   AST.Case (desugarAST cond)
     $ fromFoldable
         [ { caseTag: 2
