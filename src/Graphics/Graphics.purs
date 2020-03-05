@@ -43,18 +43,19 @@ doMyThing =
         , node "stack" [ Node.Shape Node.Plain, Node.htmlLabel tableC ]
         ]
       stackToHeap =
-        fromFoldable $ (\stack' -> collectHeapNodes state stack') <$> uniqueStack
+        fromFoldable $ (\stack' -> edgeToHeap state stack') <$> uniqueStack
 
       in toText $ DiGraph $ stackNodes <> stackToHeap
 
-collectHeapNodes { globals, heap } stackValue =
+edgeToHeap :: GmState -> (Int /\ Addr) -> Definition
+edgeToHeap { globals, heap } stackValue =
   let (id /\ addr) = stackValue
       global = swapLookup addr globals
       node' = hLookupNoCrash heap addr
   in
       (==>) ("stack:" <> show id)
             (case global of
-                 Just g -> "global"
+                 Just g -> g
                  Nothing -> case node' of
                                  Just h -> "heap"
                                  Nothing -> unsafeCrashWith "gfs")
