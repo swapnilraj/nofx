@@ -17,12 +17,14 @@ import Data.DotLang.Attr.Global as Global
 import Data.Array (fromFoldable)
 import Data.Tuple
 import Data.Tuple.Nested
-import Data.List ((..), length, zip)
+import Data.List ((..), length, unzip, zip)
 
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), fromMaybe, fromMaybe')
 import Data.Newtype (unwrap)
 import Data.Maybe.First (First(..))
 import Data.Foldable (class Foldable, foldMap)
+
+import Control.Alt ((<|>))
 
 import Partial.Unsafe
 
@@ -42,23 +44,37 @@ doMyThing =
         [ global [ Global.RankDir Global.FromLeft ]
         , node "stack" [ Node.Shape Node.Plain, Node.htmlLabel tableC ]
         ]
-      stackToHeap =
-        fromFoldable $ (\stack' -> edgeToHeap state stack') <$> uniqueStack
+      (edges /\ nestedNodes) = unzip $ (\stack' -> edgeToHeap state stack') <$> uniqueStack
 
-      in toText $ DiGraph $ stackNodes <> stackToHeap
+      in toText $ DiGraph $ stackNodes <>
+                            (fromFoldable edges) <>
+                            (join <<< fromFoldable $ nestedNodes)
 
-edgeToHeap :: GmState -> (Int /\ Addr) -> Definition
+edgeToHeap :: GmState -> (Int /\ Addr) -> (Definition /\ Array Definition)
 edgeToHeap { globals, heap } stackValue =
   let (id /\ addr) = stackValue
-      global = swapLookup addr globals
-      node' = hLookupNoCrash heap addr
+      nodeGlobal = swapLookup addr globals
+      heapVal = hLookupNoCrash heap addr
+      nodeHeap = fst <<< renderHeapNode <$> heapVal
+      nodeRef = fromMaybe' (\_ -> unsafeCrashWith "s") (nodeGlobal <|> nodeHeap)
+      nodeHeapAttrs = snd <<< renderHeapNode <$> heapVal
+      nodeAttrs = fromMaybe [] nodeHeapAttrs
+
   in
-      (==>) ("stack:" <> show id)
-            (case global of
-                 Just g -> g
-                 Nothing -> case node' of
-                                 Just h -> "heap"
-                                 Nothing -> unsafeCrashWith "gfs")
+    (("stack:" <> show id) ==> nodeRef) /\ nodeAttrs
+
+renderHeapNode :: Node -> (String /\ Array Definition)
+renderHeapNode (NNum n) = (show n) /\ []
+renderHeapNode (NAp a1 a2) =
+  let ref = show a1 <> show a2
+      node' = node ref [ Node.label "@" ]
+  in (ref /\ [ node'
+             , ref ==> "a1"
+             , ref ==> "a2"
+             ])
+renderHeapNode (NGlobal _ _) = "fac" /\ []
+renderHeapNode (NInd addr) = "Ind" /\ []
+renderHeapNode (NConstr tag _) = "Cons" /\ []
 
 hLookupNoCrash :: forall a.Heap a -> Int -> Maybe a
 hLookupNoCrash (size /\ free /\ cts) a = lookup a cts
