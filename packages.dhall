@@ -119,10 +119,56 @@ let additions =
 
 
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.13.6-20200123/packages.dhall sha256:687bb9a2d38f2026a89772c47390d02939340b01e31aaa22de9247eadd64af05
+      https://github.com/purescript/package-sets/releases/download/psc-0.13.6-20200226/packages.dhall sha256:3a52562e05b31a7b51d12d5b228ccbe567c527781a88e9028ab42374ab55c0f1
 
 let overrides = {=}
 
-let additions = {=}
+let additions =
+      { generic-graphviz =
+          { dependencies =
+              [ "console"
+              , "dotlang"
+              , "effect"
+              , "generics-rep"
+              , "graphviz"
+              , "prelude"
+              , "psci-support"
+              , "test-unit"
+              , "typelevel-prelude"
+              ]
+          , repo = "https://github.com/csicar/purescript-generic-graphviz.git"
+          , version = "master"
+          }
+      , graphviz =
+          { dependencies =
+              [ "aff"
+              , "console"
+              , "dotlang"
+              , "effect"
+              , "functions"
+              , "node-fs"
+              , "node-fs-aff"
+              , "prelude"
+              , "psci-support"
+              , "test-unit"
+              ]
+          , repo = "https://github.com/csicar/purescript-graphviz.git"
+          , version = "master"
+          }
+      , dotlang =
+          { dependencies =
+              [ "colors"
+              , "console"
+              , "effect"
+              , "generics-rep"
+              , "prelude"
+              , "psci-support"
+              , "strings"
+              , "test-unit"
+              ]
+          , repo = "https://github.com/csicar/purescript-dotlang.git"
+          , version = "master"
+          }
+      }
 
 in  upstream // overrides // additions

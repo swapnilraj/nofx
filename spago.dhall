@@ -6,8 +6,11 @@ You can edit this file as you like.
 , dependencies =
     [ "console"
     , "debug"
+    , "dotlang"
     , "effect"
+    , "generic-graphviz"
     , "generics-rep"
+    , "graphviz"
     , "ordered-collections"
     , "parsing"
     , "prelude"
