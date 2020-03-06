@@ -37,7 +37,7 @@ table rows = "<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\">" <>
               rows <>
              "</table>>"
 
-doMyThing =
+doMyThing state =
   let uniqueStack = zip (0..length state.stack) state.stack
       tableC = table $ intercalate " " $ (\(id /\ x) -> portRow (show id) (show x)) <$> uniqueStack
       stackNodes =
@@ -51,31 +51,47 @@ doMyThing =
                             (join <<< fromFoldable $ nestedNodes)
 
 edgeToHeap :: GmState -> (Int /\ Addr) -> (Definition /\ Array Definition)
-edgeToHeap { globals, heap } stackValue =
+edgeToHeap state stackValue =
   let (id /\ addr) = stackValue
+      { globals, heap } = state
       nodeGlobal = swapLookup addr globals
       heapVal = hLookupNoCrash heap addr
-      nodeHeap = fst <<< renderHeapNode <$> heapVal
+      nodeHeap = fst <<< (renderHeapNode state) <$> heapVal
       nodeRef = fromMaybe' (\_ -> unsafeCrashWith "s") (nodeGlobal <|> nodeHeap)
-      nodeHeapAttrs = snd <<< renderHeapNode <$> heapVal
+      nodeHeapAttrs = snd <<< (renderHeapNode state) <$> heapVal
       nodeAttrs = fromMaybe [] nodeHeapAttrs
 
   in
     (("stack:" <> show id) ==> nodeRef) /\ nodeAttrs
 
-renderHeapNode :: Node -> (String /\ Array Definition)
-renderHeapNode (NNum n) = (show n) /\ []
-renderHeapNode (NAp a1 a2) =
-  let ref = show a1 <> show a2
-      node' = node ref [ Node.label "@" ]
-  in (ref /\ [ node'
-             , ref ==> "a1"
-             , ref ==> "a2"
-             ])
-renderHeapNode (NGlobal _ _) = "fac" /\ []
-renderHeapNode (NInd addr) = "Ind" /\ []
-renderHeapNode (NConstr tag _) = "Cons" /\ []
+renderHeapNode :: GmState -> Node -> (String /\ Array Definition)
+renderHeapNode { globals, heap } (NNum n) = (show n) /\ []
+renderHeapNode state (NAp a1 a2) =
+  let ref = "app" <> show a1 <> show a2
+      { globals, heap } = state
+      node' = node ref [ Node.label "@", Node.Shape Node.Plain ]
+
+      a1Global = swapLookup a1 globals
+      heapVal1 = hLookupNoCrash heap a1
+      nodeHeap1 = fst <<< (renderHeapNode state) <$> heapVal1
+      nodeRef1 = fromMaybe' (\_ -> unsafeCrashWith "s") (a1Global <|> nodeHeap1)
+      nodeAttrs1 = fromMaybe [] $ snd <<< (renderHeapNode state) <$> heapVal1
+
+      a2Global = swapLookup a2 globals
+      heapVal2 = hLookupNoCrash heap a2
+      nodeHeap2 = fst <<< (renderHeapNode state) <$> heapVal2
+      nodeRef2 = fromMaybe' (\_ -> unsafeCrashWith "s") (a2Global <|> nodeHeap2)
+      nodeAttrs2 = fromMaybe [] $ snd <<< (renderHeapNode state) <$> heapVal2
+
+  in (ref /\ ([ node'
+             , node nodeRef1 []
+             , node nodeRef2 []
+             , ref ==> nodeRef1
+             , ref ==> nodeRef2
+             ] <> nodeAttrs1 <> nodeAttrs2))
 renderHeapNode _ (NGlobal name _ _) = name /\ [ node name [ Node.Shape Node.Plain ] ]
+renderHeapNode { globals, heap } (NInd addr) = "Ind" /\ []
+renderHeapNode _ (NConstr tag _) = "Cons" /\ []
 
 hLookupNoCrash :: forall a.Heap a -> Int -> Maybe a
 hLookupNoCrash (size /\ free /\ cts) a = lookup a cts
