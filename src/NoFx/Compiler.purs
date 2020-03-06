@@ -75,7 +75,7 @@ instance eqInstruction :: Eq (Instruction) where
 data Node
   = NNum Int
   | NAp Addr Addr
-  | NGlobal Int GmCode
+  | NGlobal String Int GmCode
   | NInd Addr
   | NConstr Int (List Addr)
 derive instance genericNode :: Generic (Node) _
@@ -110,7 +110,7 @@ aRange alist = ado (a /\ b) <- alist in b
 allocateSc :: GmHeap -> GmCompiledSC -> (GmHeap /\ (Name /\ Addr))
 allocateSc heap (CompSC name nargs instns)
   = heap' /\ (name /\ addr)
-  where (heap' /\ addr) = hAlloc heap (NGlobal nargs instns)
+  where (heap' /\ addr) = hAlloc heap (NGlobal name nargs instns)
 
 allocNodes :: Int -> GmHeap -> (GmHeap /\ List Addr)
 allocNodes 0 heap = heap /\ Nil

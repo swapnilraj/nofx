@@ -172,7 +172,7 @@ unwind s =
                               _ -> unsafeCrashWith ""
     newState (NInd a1) =  s { code = singleton Unwind, stack = (a1:as) }
     newState (NAp a1 a2) = s { code = singleton Unwind, stack = (a1:a:as) }
-    newState (NGlobal n c')
+    newState (NGlobal _ n c')
       | (length as >= n) = s { code = c', stack = rearrange n s.heap (a:as) }
       | otherwise =
         let stack' = case (last (s.stack <> s')) of
