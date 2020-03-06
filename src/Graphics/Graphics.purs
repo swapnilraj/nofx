@@ -65,10 +65,9 @@ edgeToHeap state stackValue =
     (("stack:" <> show id) ==> nodeRef) /\ nodeAttrs
 
 renderHeapNode :: GmState -> Node -> (String /\ Array Definition)
-renderHeapNode { globals, heap } (NNum n) = (show n) /\ []
+renderHeapNode state (NNum n) = (show n) /\ []
 renderHeapNode state (NAp a1 a2) =
   let ref = "app" <> show a1 <> show a2
-      { globals, heap } = state
       node' = node ref [ Node.label "@", Node.Shape Node.Plain ]
 
       a1Global = swapLookup a1 globals
@@ -89,9 +88,15 @@ renderHeapNode state (NAp a1 a2) =
              , ref ==> nodeRef1
              , ref ==> nodeRef2
              ] <> nodeAttrs1 <> nodeAttrs2))
-renderHeapNode _ (NGlobal name _ _) = name /\ [ node name [ Node.Shape Node.Plain ] ]
-renderHeapNode { globals, heap } (NInd addr) = "Ind" /\ []
-renderHeapNode _ (NConstr tag _) = "Cons" /\ []
+  where { globals, heap } = state
+renderHeapNode state (NGlobal name _ _) = name /\ [ node name [ Node.Shape Node.Plain ] ]
+renderHeapNode state (NInd addr) =
+  let heapVal = hLookupNoCrash heap addr
+      nodeHeap = fst <<< (renderHeapNode state) <$> heapVal
+      nodeRef = fromMaybe' (\_ -> unsafeCrashWith "s") nodeHeap
+  in nodeRef /\ [ node nodeRef [ Node.Shape Node.Diamond ] ]
+  where { globals, heap } = state
+renderHeapNode state (NConstr tag _) = "Cons" /\ []
 
 hLookupNoCrash :: forall a.Heap a -> Int -> Maybe a
 hLookupNoCrash (size /\ free /\ cts) a = lookup a cts
@@ -1232,5 +1237,5 @@ state3 = {
                                                                            (NGlobal
                                                                            "main" 0 ((PushInt 4) : (PushGlobal "fac") : Mkap : Eval : (Update 0) : (Pop 0) : Unwind : Nil))) : Nil))),
   output: "",
-  stack: (14 : 51 : 14 : 15 : Nil),
+  stack: (22 : 51 : 14 : 15 : Nil),
   stats: 211 }
