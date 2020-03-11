@@ -3,6 +3,7 @@ module Components.App where
 import Prelude
 
 import Components.Editor (mkEditor)
+import Components.Viz (mkViz)
 
 import Effect (Effect)
 import React.Basic as RB
@@ -13,9 +14,10 @@ import React.Basic.Hooks as React
 mkApp :: Effect (ReactComponent {})
 mkApp = do
   editor <- mkEditor
+  viz <- mkViz
   component "App" \props -> React.do
-    on /\ setState <- useState true
-    pure $ R.div { children: [ element editor { setState }
-                             , R.text $ if on then "T" else "F"
+    prog /\ setProg <- useState ""
+    pure $ R.div { children: [ element editor { setProg }
+                             , element viz { prog }
                              ]
                 }
