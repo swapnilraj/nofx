@@ -62,7 +62,7 @@ data Instruction
   | Eq  | Neq
   | Lt | Leq | Gt | Geq
   | Cond GmCode GmCode
-  | Pack Int Int
+  | Pack String Int Int
   | Casejump (List (Int /\ GmCode))
   | Split Int
   | Print
@@ -77,7 +77,7 @@ data Node
   | NAp Addr Addr
   | NGlobal String Int GmCode
   | NInd Addr
-  | NConstr Int (List Addr)
+  | NConstr String Int (List Addr)
 derive instance genericNode :: Generic (Node) _
 instance showNode :: Show (Node) where
   show x = genericShow x
@@ -174,7 +174,7 @@ saturatedCons ((Constr n t a) : es) = a == length es
 saturatedCons (e:es) = false
 
 compileCS :: List CoreExpr -> GmEnvironment -> GmCode
-compileCS ((Constr n t a) : Nil) _ = singleton $ Pack t a
+compileCS ((Constr n t a) : Nil) _ = singleton $ Pack n t a
 compileCS (e:es) args = compileC e args <> (compileCS es (argOffset 1 args))
 compileCS Nil _ = Nil
 
@@ -183,7 +183,7 @@ compileC = unsafePartial $ compileC'
   where
     compileC' :: Partial => GmCompiler
     compileC' (Num n) _ = singleton $ PushInt n
-    compileC' (Constr n t 0) _ = singleton $ Pack t 0
+    compileC' (Constr n t 0) _ = singleton $ Pack n t 0
     compileC' (Var v) args
       | elem v (aDomain args) = singleton $
                                 Push (unsafePartial $ fromJust $ lookup v args)

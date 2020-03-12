@@ -106,7 +106,7 @@ renderHeapNode state (NInd addr) =
       nodeRef = fromMaybe' (\_ -> unsafeCrashWith "s") nodeHeap
   in nodeRef /\ [ node nodeRef [ Node.Shape Node.Diamond ] ]
   where { globals, heap } = state
-renderHeapNode state (NConstr tag _) = "Cons" /\ []
+renderHeapNode state (NConstr name tag _) = name /\ []
 
 hLookupNoCrash :: forall a.Heap a -> Int -> Maybe a
 hLookupNoCrash (size /\ free /\ cts) a = lookup a cts

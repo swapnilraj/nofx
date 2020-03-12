@@ -37,7 +37,7 @@ dispatch (Pop n)         = pop n
 dispatch (Alloc n)       = alloc n
 dispatch (Update n)      = update n
 dispatch (Eval)          = eval
-dispatch (Pack t a)      = pack t a
+dispatch (Pack n t a)    = pack n t a
 dispatch (Casejump alts) = casejump alts
 dispatch (Unwind)        = unwind
 dispatch (Print)         = print
@@ -77,7 +77,7 @@ casejump alts s = s { code = code' }
                  Just h -> h
                  Nothing -> unsafeCrashWith "Empty stack"
     tag = case hLookup s.heap addr of
-                NConstr tag _ -> tag
+                NConstr _ tag _ -> tag
                 x -> unsafeCrashWith $ "Expected a constructor" <> show x
     selected = case lookup tag alts of
                     Just s -> s
@@ -138,16 +138,16 @@ split n s = s { stack = as <> ack }
                         Cons st ack -> (st /\ ack)
                         Nil -> unsafeCrashWith "Not enough arguments on stack 2"
         as = case hLookup s.heap st of
-                  NConstr _ as -> as
+                  NConstr _ _ as -> as
                   _ -> unsafeCrashWith "Expecting constructor"
 
 alloc :: Int -> GmState -> GmState
 alloc n s = s { heap = heap', stack = stack' <> s.stack }
   where (heap' /\ stack') = allocNodes n s.heap
 
-pack :: Int -> Int -> GmState -> GmState
-pack t a s = s { heap = heap', stack = (addr : drop a s.stack) }
-  where (heap' /\ addr) = hAlloc s.heap (NConstr t (take a s.stack))
+pack :: String -> Int -> Int -> GmState -> GmState
+pack n t a s = s { heap = heap', stack = (addr : drop a s.stack) }
+  where (heap' /\ addr) = hAlloc s.heap (NConstr n t (take a s.stack))
 
 unwind :: GmState -> GmState
 unwind s =
@@ -163,7 +163,7 @@ unwind s =
         (c /\ s' /\ ds) = case s.dump of
                               (c /\ s'):ds -> (c /\ s' /\ ds)
                               _ -> unsafeCrashWith ""
-    newState (NConstr n as)
+    newState (NConstr _ n as)
       | s.dump == Nil = s
       | otherwise = s { dump = ds, code = c, stack = a:s' }
       where
@@ -201,9 +201,9 @@ print s = newState (hLookup s.heap a)
         (a /\ as) = case s.stack of
                           (a:as) -> (a /\ as)
                           _ -> unsafeCrashWith ""
-        newState (NConstr t arity) = s { stack = arity <> as
-                                       , output = "Pack{" <> show t <> ", " <>
-                                                    show (length arity) <> "}"
+        newState (NConstr name t arity) =
+                                     s { stack = arity <> as
+                                       , output = name
                                        , code = printcode (length arity) <>
                                                 s.code
                                        }
@@ -245,7 +245,7 @@ unboxInteger a s =
   ub (hLookup s.heap a)
   where
     ub (NNum i) = i
-    ub (NConstr t _) = t
+    ub (NConstr _ t _) = t
     ub x        = unsafeCrashWith $ "Unboxing non-integer" <> show x
 
 boxBoolean :: Boolean -> GmState -> GmState
@@ -254,7 +254,8 @@ boxBoolean b s =
   where
     b' | b = 2
        | otherwise = 3
-    (h' /\ a) = hAlloc s.heap (NConstr b' Nil)
+    name = if b' == 2 then "true" else "false"
+    (h' /\ a) = hAlloc s.heap (NConstr name b' Nil)
 
 arithmetic2 = binaryOp boxInteger unboxInteger
 
