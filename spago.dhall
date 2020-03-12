@@ -10,6 +10,7 @@ You can edit this file as you like.
     , "effect"
     , "generic-graphviz"
     , "generics-rep"
+    , "globals"
     , "graphviz"
     , "ordered-collections"
     , "parsing"
