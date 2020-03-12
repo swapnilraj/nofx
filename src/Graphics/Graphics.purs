@@ -23,6 +23,10 @@ import Data.Maybe (Maybe(..), fromMaybe, fromMaybe')
 import Data.Newtype (unwrap)
 import Data.Maybe.First (First(..))
 import Data.Foldable (class Foldable, foldMap)
+import Data.String.Common (null)
+
+import Effect.Aff (Aff)
+import Graphics.Graphviz (Engine(..), Format(..), renderToText)
 
 import Control.Alt ((<|>))
 
@@ -31,13 +35,19 @@ import Partial.Unsafe
 import Utility
 import Compiler
 
+portRow :: String -> String -> String
 portRow port label = "<tr><td port=\"" <> port <> "\">" <> label <> "</td></tr>"
 
+table :: String -> String
 table rows = "<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\">" <>
-              rows <>
+              (if null rows then "<tr><td></td></tr>" else rows) <>
              "</table>>"
 
-doMyThing state =
+renderGmState :: GmState -> Aff String
+renderGmState = renderToText Dot Svg <<< toDot
+
+toDot :: GmState -> String
+toDot state =
   let uniqueStack = zip (0..length state.stack) state.stack
       tableC = table $ intercalate " " $ (\(id /\ x) -> portRow (show id) (show x)) <$> uniqueStack
       stackNodes =
