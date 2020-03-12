@@ -17,7 +17,7 @@ import Data.DotLang.Attr.Global as Global
 import Data.Array (fromFoldable)
 import Data.Tuple
 import Data.Tuple.Nested
-import Data.List ((..), length, unzip, zip)
+import Data.List ((..), length, reverse, unzip, zip)
 
 import Data.Maybe (Maybe(..), fromMaybe, fromMaybe')
 import Data.Newtype (unwrap)
@@ -49,7 +49,7 @@ renderGmState = renderToText Dot Svg <<< toDot
 toDot :: GmState -> String
 toDot state =
   let uniqueStack = zip (0..length state.stack) state.stack
-      tableC = table $ intercalate " " $ (\(id /\ x) -> portRow (show id) (show x)) <$> uniqueStack
+      tableC = table $ intercalate " " $ reverse $ (\(id /\ x) -> portRow (show id) ("")) <$> uniqueStack
       stackNodes =
         [ global [ Global.RankDir Global.FromLeft ]
         , node "stack" [ Node.Shape Node.Plain, Node.htmlLabel tableC ]
