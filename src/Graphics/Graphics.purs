@@ -56,9 +56,9 @@ toDot state =
         ]
       (edges /\ nestedNodes) = unzip $ (\stack' -> edgeToHeap state stack') <$> uniqueStack
 
-      in toText $ DiGraph $ stackNodes <>
+      in "strict " <> (toText $ DiGraph $ stackNodes <>
                             (fromFoldable edges) <>
-                            (join <<< fromFoldable $ nestedNodes)
+                            (join <<< fromFoldable $ nestedNodes))
 
 edgeToHeap :: GmState -> (Int /\ Addr) -> (Definition /\ Array Definition)
 edgeToHeap state stackValue =
