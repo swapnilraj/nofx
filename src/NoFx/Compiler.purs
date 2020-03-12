@@ -81,6 +81,8 @@ data Node
 derive instance genericNode :: Generic (Node) _
 instance showNode :: Show (Node) where
   show x = genericShow x
+instance eqNode :: Eq (Node) where
+  eq x y = genericEq x y
 
 compile :: CoreProgram -> GmState
 compile prog
