@@ -39,5 +39,8 @@ mkViz = do
       pure $ mempty
     case rendered of
         Just (Right imgs) ->
-          pure $ R.div_ [ element carouselEl { carousel, setCarousel } ]
+          pure $
+            R.div { children: [ element carouselEl { carousel, setCarousel } ]
+                  , className: "viz"
+                  }
         _ -> pure $ empty

@@ -45,9 +45,11 @@ mkCarousel = do
   carouselImg <- mkCarouselImg
   carouselControl <- mkCarouselControl
   component "Carousel" \{ carousel, setCarousel } -> React.do
-    pure $ R.div_ [ element carouselImg { carousel }
-                  , element carouselControl { carousel, setCarousel }
-                  ]
+    pure $ R.div { children: [ element carouselImg { carousel }
+                             , element carouselControl { carousel, setCarousel }
+                             ]
+                 , className: "carousel"
+                 }
 
 emptyCarousel :: Carousel String
 emptyCarousel = (Carousel Nil "" Nil)
@@ -55,16 +57,20 @@ emptyCarousel = (Carousel Nil "" Nil)
 mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel String } )
 mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
                 let (Carousel _ c _) = carousel
-                pure $ R.img { src: c }
+                pure $ R.img { src: c
+                             , className: "carousel-img"
+                             }
 
 mkCarouselControl :: CarouselAction
 mkCarouselControl = do
   nextButton <- mkNextButton
   previousButton <- mkPreviousButton
   component "CarouselControl" \props -> React.do
-     pure $ R.div_ [ element nextButton props
-                   , element previousButton props
-                   ]
+     pure $ R.div { children: [ element previousButton props
+                              , element nextButton props
+                              ]
+                  , className: "carousel-control"
+                  }
 
 mkPreviousButton :: CarouselAction
 mkPreviousButton = component "PreviousButton" \{ carousel, setCarousel } -> React.do

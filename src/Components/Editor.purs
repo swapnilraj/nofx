@@ -28,16 +28,21 @@ mkEditor :: Effect (ReactComponent
                    )
 mkEditor = component "Editor" \{ setProg } -> React.do
            editor <- useInput ""
-           pure $ R.div_ [ R.textarea { onChange: editor.onChange
-                                      , value: editor.value
-                                      }
-                          , R.button { onClick: handler_ $
+           pure $ R.div
+                    { children: [ R.button { onClick: handler_ $
                                                 setProg $
                                                 \_ ->
                                                 toGmState editor.value
-                                     , children: [ R.text "Run" ]
-                                     }
-                          ]
+                                           , children: [ R.text "Run" ]
+                                           , className: "editor-run"
+                                           }
+                                , R.textarea { onChange: editor.onChange
+                                             , value: editor.value
+                                             , className: "editor-textarea"
+                                             }
+                                ]
+                    , className: "editor"
+                    }
   where
     toGmState s = unsafePartial $
                   ( interpret <<<

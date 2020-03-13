@@ -21,6 +21,9 @@ mkApp = do
   viz <- mkViz
   component "App" \props -> React.do
     prog /\ setProg <- useState ( Nil :: List GmState)
-    pure $ R.div_ [ element editor { setProg }
-                  , element viz { prog }
-                  ]
+    pure $ R.div
+            { children: [ element editor { setProg }
+                        , element viz { prog }
+                        ]
+            , className: "app"
+            }
