@@ -57,8 +57,11 @@ emptyCarousel = (Carousel Nil "" Nil)
 mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel String } )
 mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
                 let (Carousel _ c _) = carousel
-                pure $ R.img { src: c
-                             , className: "carousel-img"
+                pure $ R.div { children: [ R.img { src: c
+                                                 , className: "carousel-img"
+                                                 }
+                                         ]
+                             , className: "carousel-img-container"
                              }
 
 mkCarouselControl :: CarouselAction
