@@ -9,5 +9,10 @@
   "devDependencies": {
     "parcel-bundler": "^1.12.4",
     "purty": "^4.6.0"
+  },
+  "scripts": {
+    "build": "spago bundle-app -t public/index.js",
+    "serve": "parcel public/index.html",
+    "bundle": "parcel build public/index.html"
   }
 }
