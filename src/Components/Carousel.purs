@@ -18,12 +18,14 @@ toCarousel l = Carousel Nil hd tl
         tl = fromMaybe Nil $ tail l
 
 nextCarousel :: forall a.Monoid a => Carousel a -> Carousel a
+nextCarousel c@(Carousel _ _ Nil) = c
 nextCarousel (Carousel bef curr after) =
   Carousel (bef <> singleton curr) curr' tl
   where curr' = fromMaybe mempty $ head after
         tl = fromMaybe Nil $ tail after
 
 previousCarousel :: forall a.Monoid a => Carousel a -> Carousel a
+previousCarousel c@(Carousel Nil _ _) = c
 previousCarousel (Carousel bef curr after) =
   Carousel ini lt (Cons curr after)
   where ini = fromMaybe Nil $ init after
