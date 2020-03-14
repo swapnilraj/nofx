@@ -4,7 +4,7 @@ import Prelude ((<>), (<$>), ($), (<<<), show)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..), lookup)
 import Data.List (List(..), (:), fromFoldable, reverse)
-import Partial.Unsafe (unsafePartial)
+import Partial.Unsafe (unsafePartial, unsafeCrashWith)
 import AST as AST
 import Syntax as S
 
@@ -76,12 +76,18 @@ desugarAST (S.Lit (S.LBool bool)) =
 
 desugarBinders (Tuple n exp) = Tuple n (desugarAST exp)
 
+extractCons :: S.CorePAST -> S.CorePAST
+extractCons con@(S.Constr _) = con
+extractCons (S.App con@(S.Constr n) _) = con
+extractCons (S.App cons _) = extractCons cons
+extractCons _ = unsafeCrashWith "Expected an application or constructor node"
+
 desugarAlters { cons, rhs } =
   let
     { name, tag, arity } =
       unsafePartial
         $ fromJust
-        $ lookup cons packConstructor
+        $ lookup (extractCons cons) packConstructor
   in
     { caseTag: tag
     , vars: unsafePartial $ collectVars $ cons
