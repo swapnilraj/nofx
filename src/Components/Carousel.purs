@@ -2,32 +2,32 @@ module Components.Carousel where
 
 import Prelude
 
-import Data.List (List(..), head, init, last, singleton, tail)
+import Data.List (List(..), head, init, last, length, singleton, tail)
 import Data.Maybe (fromMaybe)
 
 import Effect (Effect)
 import React.Basic.DOM as R
 import React.Basic.Events (handler_)
-import React.Basic.Hooks (ReactComponent, component, element)
+import React.Basic.Hooks (ReactComponent, component, element, empty)
 
-data Carousel a = Carousel (List a) a (List a)
+data Carousel a = Carousel (List a) a Int Int (List a)
 
 toCarousel :: forall a.Monoid a => List a -> Carousel a
-toCarousel l = Carousel Nil hd tl
+toCarousel l = Carousel Nil hd 0 (length l - 1) tl
   where hd = fromMaybe mempty $ head l
         tl = fromMaybe Nil $ tail l
 
 nextCarousel :: forall a.Monoid a => Carousel a -> Carousel a
-nextCarousel c@(Carousel _ _ Nil) = c
-nextCarousel (Carousel bef curr after) =
-  Carousel (bef <> singleton curr) curr' tl
+nextCarousel c@(Carousel _ _ _ _ Nil) = c
+nextCarousel (Carousel bef curr n bound after) =
+  Carousel (bef <> singleton curr) curr' (n + 1) bound tl
   where curr' = fromMaybe mempty $ head after
         tl = fromMaybe Nil $ tail after
 
 previousCarousel :: forall a.Monoid a => Carousel a -> Carousel a
-previousCarousel c@(Carousel Nil _ _) = c
-previousCarousel (Carousel bef curr after) =
-  Carousel ini lt (Cons curr after)
+previousCarousel c@(Carousel Nil _ _ _ _) = c
+previousCarousel (Carousel bef curr n bound after) =
+  Carousel ini lt (n - 1) bound (Cons curr after)
   where ini = fromMaybe Nil $ init bef
         lt = fromMaybe mempty $ last bef
 
@@ -45,18 +45,21 @@ mkCarousel = do
   carouselImg <- mkCarouselImg
   carouselControl <- mkCarouselControl
   component "Carousel" \{ carousel, setCarousel } -> React.do
-    pure $ R.div { children: [ element carouselImg { carousel }
+    let (Carousel _ _ _ total _ ) = carousel
+    pure $ if total > 0 then
+           R.div { children: [ element carouselImg { carousel }
                              , element carouselControl { carousel, setCarousel }
                              ]
                  , className: "carousel"
                  }
+          else empty
 
-emptyCarousel :: Carousel String
-emptyCarousel = (Carousel Nil "" Nil)
+emptyCarousel :: forall a. Monoid a => Carousel a
+emptyCarousel = (Carousel Nil mempty 0 0 Nil)
 
 mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel String } )
 mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
-                let (Carousel _ c _) = carousel
+                let (Carousel _ c _ _ _) = carousel
                 pure $ R.div { children: [ R.img { src: c
                                                  , className: "carousel-img"
                                                  }
