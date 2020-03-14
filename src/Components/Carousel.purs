@@ -69,14 +69,24 @@ mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
 
 mkCarouselControl :: CarouselAction
 mkCarouselControl = do
+  carouselConuter <- mkCarouselCounter
   nextButton <- mkNextButton
   previousButton <- mkPreviousButton
   component "CarouselControl" \props -> React.do
-     pure $ R.div { children: [ element previousButton props
-                              , element nextButton props
+     pure $ R.div { children: [ element carouselConuter props
+                              , R.div { children: [ element previousButton props
+                                                  , element nextButton props
+                                                  ]
+                                      , className: "carousel-control"
+                                      }
                               ]
-                  , className: "carousel-control"
+                  , className: "carousel-info"
                   }
+
+mkCarouselCounter :: CarouselAction
+mkCarouselCounter = component "CarouselCounter" \{ carousel } -> React.do
+                    let (Carousel _ _ curr total _ ) = carousel
+                    pure $ R.text $ show curr <> " / " <> show total
 
 mkPreviousButton :: CarouselAction
 mkPreviousButton = component "PreviousButton" \{ carousel, setCarousel } -> React.do

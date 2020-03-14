@@ -60,6 +60,10 @@ button {
   display: inline-block;
 }
 
+.carousel-info {
+  text-align: center;
+}
+
 .carousel-control {
   display: flex;
   justify-content: center;
