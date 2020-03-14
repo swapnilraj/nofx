@@ -152,7 +152,7 @@ let additions =
               , "psci-support"
               , "test-unit"
               ]
-          , repo = "https://github.com/csicar/purescript-graphviz.git"
+          , repo = "https://github.com/swapnilraj/purescript-graphviz.git"
           , version = "master"
           }
       , dotlang =
