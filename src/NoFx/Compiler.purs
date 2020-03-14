@@ -229,7 +229,7 @@ compileAlts comp alts args
   = ado { caseTag, vars, rhs } <- alts
         let n = length vars
             args' = zip vars (0..n) <> argOffset n args
-    in caseTag /\ (comp n rhs args)
+    in caseTag /\ (comp n rhs args')
 
 argOffset :: Int -> GmEnvironment -> GmEnvironment
 argOffset n env
