@@ -33,7 +33,9 @@ mkEditor = component "Editor" \{ setProg } -> React.do
                                                 setProg $
                                                 \_ ->
                                                 toGmState editor.value
-                                           , children: [ R.text "Run" ]
+                                           , children: [ R.div { className: "arrow-right" }
+                                                       , R.text "Run"
+                                                       ]
                                            , className: "editor-run"
                                            }
                                 , R.textarea { onChange: editor.onChange

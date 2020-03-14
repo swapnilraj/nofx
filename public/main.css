@@ -9,7 +9,7 @@ html, body {
 }
 
 button {
-  padding: 1em;
+  padding: 0.7em;
   font-size: 1.25em;
 }
 
@@ -64,4 +64,14 @@ button {
   display: flex;
   justify-content: center;
 }
+
+.arrow-right {
+  display: inline-block;
+  vertical-align: text-top;
+  margin-right: 0.5em;
+  width: 0;
+  height: 0;
+  border-top: 0.5em solid transparent;
+  border-bottom: 0.5em solid transparent;
+  border-left: 1em solid black;
 }
