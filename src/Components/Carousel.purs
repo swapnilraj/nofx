@@ -28,7 +28,7 @@ previousCarousel :: forall a.Monoid a => Carousel a -> Carousel a
 previousCarousel c@(Carousel Nil _ _) = c
 previousCarousel (Carousel bef curr after) =
   Carousel ini lt (Cons curr after)
-  where ini = fromMaybe Nil $ init after
+  where ini = fromMaybe Nil $ init bef
         lt = fromMaybe mempty $ last bef
 
 type CarouselAction =
