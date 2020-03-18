@@ -2,9 +2,10 @@ module Components.Viz where
 
 import Prelude
 
-import Data.List (List)
-import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Either (Either(..), hush)
+import Data.List (List, (..), length, zip)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Monoid.Additive
 import Data.Traversable (sequence)
 
 import Components.Carousel (mkCarousel, toCarousel, emptyCarousel)
@@ -34,7 +35,12 @@ mkViz = do
     useEffect (rendered <#> hush) $ do
       case rendered of
         Just (Right imgs) -> do
-          setCarousel $ const $ toCarousel $ mkImgSrc <$> imgs
+          setCarousel $
+            const $
+            toCarousel $
+            zip (Additive <$> (0..length imgs)) $
+            mkImgSrc <$>
+            imgs
         _ -> pure $ unit
       pure $ mempty
     case rendered of
