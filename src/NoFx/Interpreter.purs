@@ -1,6 +1,6 @@
 module Interpreter where
 
-import Prelude (class Eq, class Ord, (+), (-), (*), (/), (<>), (==), (/=), (<), (<=), (>), (>=), (<<<), ($), (<$>), negate, show, otherwise)
+import Prelude (class Eq, class Ord, (+), (-), (*), (/), (<>), (==), (/=), (<), (<=), (>), (>=), (<<<), (>>>), ($), (<$>), negate, show, otherwise)
 
 import Data.List (List(..), (:), (!!), drop, head, last, length, null, singleton, tail, take)
 import Data.Maybe (Maybe(..))
@@ -27,33 +27,39 @@ step s = go s.code
     go (i:is) = dispatch i (s { code = is })
     go Nil = unsafeCrashWith "No code to execute"
 
+isUnwind :: GmState -> GmState
+isUnwind s = s { isUnwind = true }
+
+isNotUnwind :: GmState -> GmState
+isNotUnwind s = s { isUnwind = false }
+
 dispatch :: Instruction -> GmState -> GmState
-dispatch (PushGlobal f)  = pushglobal f
-dispatch (PushInt n)     = pushint n
-dispatch (Push n)        = push n
-dispatch (Slide n)       = slide n
-dispatch (Mkap)          = mkap
-dispatch (Pop n)         = pop n
-dispatch (Alloc n)       = alloc n
-dispatch (Update n)      = update n
-dispatch (Eval)          = eval
-dispatch (Pack n t a)    = pack n t a
-dispatch (Casejump alts) = casejump alts
-dispatch (Unwind)        = unwind
-dispatch (Print)         = print
-dispatch (Split n)       = split n
-dispatch (Add)           = arithmetic2 (+)
-dispatch (Sub)           = arithmetic2 (-)
-dispatch (Mul)           = arithmetic2 (*)
-dispatch (Div)           = arithmetic2 (/)
-dispatch (Neg)           = arithmetic1 (negate)
-dispatch (Eq)            = comparison (==)
-dispatch (Neq)           = comparison (/=)
-dispatch (Lt)            = comparison (<)
-dispatch (Leq)           = comparison (<=)
-dispatch (Gt)            = comparison (>)
-dispatch (Geq)           = comparison (>=)
-dispatch x              = unsafeCrashWith $ "No such instruction " <> show x
+dispatch (PushGlobal f)  = isNotUnwind >>> pushglobal f
+dispatch (PushInt n)     = isNotUnwind >>> pushint n
+dispatch (Push n)        = isNotUnwind >>> push n
+dispatch (Slide n)       = isNotUnwind >>> slide n
+dispatch (Mkap)          = isNotUnwind >>> mkap
+dispatch (Pop n)         = isNotUnwind >>> pop n
+dispatch (Alloc n)       = isNotUnwind >>> alloc n
+dispatch (Update n)      = isNotUnwind >>> update n
+dispatch (Eval)          = isNotUnwind >>> eval
+dispatch (Pack n t a)    = isNotUnwind >>> pack n t a
+dispatch (Casejump alts) = isNotUnwind >>> casejump alts
+dispatch (Unwind)        = isUnwind    >>> unwind
+dispatch (Print)         = isNotUnwind >>> print
+dispatch (Split n)       = isNotUnwind >>> split n
+dispatch (Add)           = isNotUnwind >>> arithmetic2 (+)
+dispatch (Sub)           = isNotUnwind >>> arithmetic2 (-)
+dispatch (Mul)           = isNotUnwind >>> arithmetic2 (*)
+dispatch (Div)           = isNotUnwind >>> arithmetic2 (/)
+dispatch (Neg)           = isNotUnwind >>> arithmetic1 (negate)
+dispatch (Eq)            = isNotUnwind >>> comparison (==)
+dispatch (Neq)           = isNotUnwind >>> comparison (/=)
+dispatch (Lt)            = isNotUnwind >>> comparison (<)
+dispatch (Leq)           = isNotUnwind >>> comparison (<=)
+dispatch (Gt)            = isNotUnwind >>> comparison (>)
+dispatch (Geq)           = isNotUnwind >>> comparison (>=)
+dispatch x               = unsafeCrashWith $ "No such instruction " <> show x
 
 pushglobal :: Name -> GmState -> GmState
 pushglobal f s =

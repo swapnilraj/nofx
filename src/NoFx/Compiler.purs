@@ -38,13 +38,14 @@ type GmEnvironment = ASSOC Name Int
 type GmCompiler = CoreExpr -> GmEnvironment -> GmCode
 
 type GmState
-  = { output  :: GmOutput
-    , code    :: GmCode
-    , stack   :: GmStack
-    , dump    :: GmDump
-    , heap    :: GmHeap
-    , globals :: GmGlobals
-    , stats   :: GmStats
+  = { output   :: GmOutput
+    , code     :: GmCode
+    , stack    :: GmStack
+    , dump     :: GmDump
+    , heap     :: GmHeap
+    , globals  :: GmGlobals
+    , stats    :: GmStats
+    , isUnwind :: Boolean
     }
 
 data Instruction
@@ -93,6 +94,7 @@ compile prog
     , heap: h
     , globals: g
     , stats: initialStat
+    , isUnwind: false
     }
     where
       (h /\ g) = buildInitialHeap prog
