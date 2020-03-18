@@ -6,6 +6,7 @@ import Data.List (List(..), head, init, last, length, singleton, tail)
 import Data.Maybe (fromMaybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Monoid.Additive
+import Data.Monoid.Disj
 
 import Effect (Effect)
 import React.Basic.DOM as R
@@ -38,7 +39,7 @@ type CarouselAction a = Effect (ReactComponent
                         , setCarousel :: (Carousel a -> Carousel a) -> Effect Unit
                         })
 
-mkCarousel :: CarouselAction (Additive Int /\ String)
+mkCarousel :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
 mkCarousel = do
   carouselImg <- mkCarouselImg
   carouselControl <- mkCarouselControl
@@ -53,11 +54,11 @@ mkCarousel = do
           else empty
 
 emptyCarousel :: forall a. Monoid a => Carousel a
-emptyCarousel = (Carousel Nil mempty Nil)
+emptyCarousel = Carousel Nil mempty Nil
 
-mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel (Additive Int /\ String) } )
+mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel (Disj Boolean /\ Additive Int /\ String) } )
 mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
-                let (Carousel _ (_ /\ c) _) = carousel
+                let (Carousel _ (_ /\ _ /\ c) _) = carousel
                 pure $ R.div { children: [ R.img { src: c
                                                  , className: "carousel-img"
                                                  }
@@ -65,15 +66,19 @@ mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
                              , className: "carousel-img-container"
                              }
 
-mkCarouselControl :: CarouselAction (Additive Int /\ String)
+mkCarouselControl :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
 mkCarouselControl = do
   carouselConuter <- mkCarouselCounter
   nextButton <- mkNextButton
   previousButton <- mkPreviousButton
+  previousUnwind <- mkPreviousUnwind
+  nextUnwind <- mkNextUnwind
   component "CarouselControl" \props -> React.do
      pure $ R.div { children: [ element carouselConuter props
-                              , R.div { children: [ element previousButton props
+                              , R.div { children: [ element previousUnwind props
+                                                  , element previousButton props
                                                   , element nextButton props
+                                                  , element nextUnwind props
                                                   ]
                                       , className: "carousel-control"
                                       }
@@ -81,22 +86,52 @@ mkCarouselControl = do
                   , className: "carousel-info"
                   }
 
-mkCarouselCounter :: CarouselAction (Additive Int /\ String)
+mkCarouselCounter :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
 mkCarouselCounter = component "CarouselCounter" \{ carousel } -> React.do
-                    let (Carousel before (Additive curr /\ _) after ) = carousel
+                    let (Carousel before (_ /\ Additive curr /\ _) after ) = carousel
                         total = length before + length after
                     pure $ R.text $ show curr <> " / " <> show total
 
-mkPreviousButton :: CarouselAction (Additive Int /\ String)
+mkPreviousButton :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
 mkPreviousButton = component "PreviousButton" \{ carousel, setCarousel } -> React.do
                 let previous = previousCarousel carousel
                 pure $ R.button { children: [ R.text "Previous" ]
                                 , onClick: handler_ $ setCarousel $ const previous
                                 }
 
-mkNextButton :: CarouselAction (Additive Int /\ String)
+mkNextButton :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
 mkNextButton = component "NextButton" \{ carousel, setCarousel } -> React.do
                 let next = nextCarousel carousel
                 pure $ R.button { children: [ R.text "Next" ]
                                 , onClick: handler_ $ setCarousel $ const next
                                 }
+
+mkPreviousUnwind :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
+mkPreviousUnwind = component "PreviousUnwindButton" \{ carousel, setCarousel } -> React.do
+                let previous = findPreviousUnwind carousel
+                pure $ R.button { children: [ R.text "Previous Unwind" ]
+                                , onClick: handler_ $ setCarousel $ const previous
+                                }
+
+mkNextUnwind :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
+mkNextUnwind = component "NextUnwindButton" \{ carousel, setCarousel } -> React.do
+                let next = findNextUnwind carousel
+                pure $ R.button { children: [ R.text "Next Unwind" ]
+                                , onClick: handler_ $ setCarousel $ const next
+                                }
+
+findNextUnwind :: Carousel (Disj Boolean /\ Additive Int /\ String) ->
+                  Carousel (Disj Boolean /\ Additive Int /\ String)
+findNextUnwind = go <<< nextCarousel
+  where
+  go n@(Carousel _ _ Nil) = n
+  go n@(Carousel _ (Disj true /\ _ /\ _) _) = n
+  go n = go $ nextCarousel n
+
+findPreviousUnwind :: Carousel (Disj Boolean /\ Additive Int /\ String) ->
+                  Carousel (Disj Boolean /\ Additive Int /\ String)
+findPreviousUnwind = go <<< previousCarousel
+  where
+  go n@(Carousel Nil _ _) = n
+  go n@(Carousel _ (Disj true /\ _ /\ _) _) = n
+  go n = go $ previousCarousel n
