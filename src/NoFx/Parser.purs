@@ -1,6 +1,6 @@
 module Parser where
 
-import Prelude (Unit, ($), (<>), (==), pure, bind, discard, unit)
+import Prelude (Unit, ($), (<>), (==), (*>), pure, bind, discard, unit)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (many, some) as Array
@@ -10,7 +10,7 @@ import Data.Maybe (Maybe(..), isJust)
 import Data.String.CodeUnits as SCU
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Combinators ((<?>), choice, option, optionMaybe, sepBy, sepBy1, try)
+import Text.Parsing.Parser.Combinators ((<?>), choice, optional, optionMaybe, sepBy, sepBy1, try)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (oneOf, satisfy)
 import Text.Parsing.Parser.Token
@@ -152,13 +152,14 @@ caseE _ = do
   al :: Parser String (Alter String)
   al =
     ( do
+        _ <- optional $ lex.symbol "|"
         d <- (expr unit)
         lex.reserved "=>"
         t <- expr unit
         pure $ { cons: d, rhs: t }
     )
       `sepBy1`
-        lex.symbol ";"
+        (lex.symbol "|" *> lex.whiteSpace)
 
 func :: Parser String CorePSC
 func = do
