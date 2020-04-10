@@ -22,3 +22,5 @@ output
 # Parcel
 dist
 index.js
+
+.now
