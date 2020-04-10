@@ -85,6 +85,18 @@ instance showNode :: Show (Node) where
 instance eqNode :: Eq (Node) where
   eq x y = genericEq x y
 
+emptyGmState :: GmState
+emptyGmState
+  = { output: ""
+    , code: Nil
+    , stack: Nil
+    , dump: Nil
+    , heap: 0 /\ Nil /\ Nil
+    , globals: Nil
+    , stats: initialStat
+    , isUnwind: false
+    }
+
 compile :: CoreProgram -> GmState
 compile prog
   = { output: ""

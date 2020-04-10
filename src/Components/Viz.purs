@@ -23,14 +23,6 @@ import React.Basic.Hooks.Aff (useAff)
 
 import Global (encodeURIComponent)
 
-zip3 :: forall a b c. List a -> List b -> List c -> List (a /\ b /\ c)
-zip3 xs ys zs = reverse $ go xs ys zs Nil
-  where
-  go Nil _ _ acc = acc
-  go _ Nil _ acc = acc
-  go _ _ Nil acc = acc
-  go (a : as) (b : bs) (c : cs) acc = go as bs cs $ (a /\ b /\ c) : acc
-
 mkImgSrc :: String -> String
 mkImgSrc imgData =
   "data:image/svg+xml;charset=utf8," <>
@@ -41,7 +33,6 @@ mkViz = do
   carouselEl <- mkCarousel
   component "Viz" \{ prog } -> React.do
     carousel /\ setCarousel <- useState emptyCarousel
-    let isUnwindList = (_.isUnwind >>> Disj) <$> prog
     rendered <- useAff prog $ sequence $ renderGmState <$> prog
     useEffect (rendered <#> hush) $ do
       case rendered of
@@ -49,7 +40,7 @@ mkViz = do
           setCarousel $
             const $
             toCarousel $
-            zip3 isUnwindList (Additive <$> (0..length imgs)) $
+            zip prog $
             mkImgSrc <$>
             imgs
         _ -> pure $ unit
