@@ -5,11 +5,11 @@ import Prelude
 import Data.List (List(..), (:), concatMap)
 
 import Data.Foldable (intercalate)
-import Data.DotLang (class GraphRepr, toGraph)
+import Data.DotLang (class GraphRepr, toGraph, digraph)
 import Data.DotLang.Class (toText)
 import Data.GenericGraph (class Edges, genericEdges, genericToGraph)
 
-import Data.DotLang (Definition(..), Graph(..), Edge(..), EdgeType(..), global, node, (==>), (=*>))
+import Data.DotLang (Definition(..), Edge(..), EdgeType(..), global, node, (==>), (=*>))
 import Data.DotLang.Class (toText)
 import Data.DotLang.Attr.Node as Node
 import Data.DotLang.Attr.Global as Global
@@ -56,9 +56,9 @@ toDot state =
         ]
       (edges /\ nestedNodes) = unzip $ (\stack' -> edgeToHeap state stack') <$> uniqueStack
 
-      in "strict " <> (toText $ DiGraph $ stackNodes <>
-                            (fromFoldable edges) <>
-                            (join <<< fromFoldable $ nestedNodes))
+      in toText $ digraph $ stackNodes <>
+                          (fromFoldable edges) <>
+                          (join <<< fromFoldable $ nestedNodes)
 
 edgeToHeap :: GmState -> (Int /\ Addr) -> (Definition /\ Array Definition)
 edgeToHeap state stackValue =

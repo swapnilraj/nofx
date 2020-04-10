@@ -166,7 +166,7 @@ let additions =
               , "strings"
               , "test-unit"
               ]
-          , repo = "https://github.com/csicar/purescript-dotlang.git"
+          , repo = "https://github.com/swapnilraj/purescript-dotlang.git"
           , version = "master"
           }
       }
