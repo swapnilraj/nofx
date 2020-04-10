@@ -41,12 +41,14 @@ type CarouselAction a = Effect (ReactComponent
 
 mkCarousel :: CarouselAction (Disj Boolean /\ Additive Int /\ String)
 mkCarousel = do
+  carouselCode <- mkCarouselCode
   carouselImg <- mkCarouselImg
   carouselControl <- mkCarouselControl
   component "Carousel" \{ carousel, setCarousel } -> React.do
     let (Carousel _ curr _ ) = carousel
     pure $ if curr /= mempty then
-           R.div { children: [ element carouselImg { carousel }
+           R.div { children: [ element carouselCode { carousel }
+                             , element carouselImg { carousel }
                              , element carouselControl { carousel, setCarousel }
                              ]
                  , className: "carousel"
@@ -55,6 +57,10 @@ mkCarousel = do
 
 emptyCarousel :: forall a. Monoid a => Carousel a
 emptyCarousel = Carousel Nil mempty Nil
+
+mkCarouselCode :: Effect (ReactComponent { carousel :: Carousel (Disj Boolean /\ Additive Int /\ String) } )
+mkCarouselCode = component "CarouselCode" \{ carousel } -> React.do
+                  pure $ R.div_ [ R.text "Unwind:Pop" ]
 
 mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel (Disj Boolean /\ Additive Int /\ String) } )
 mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
