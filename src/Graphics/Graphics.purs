@@ -51,7 +51,7 @@ toDot state =
   let uniqueStack = zip (0..length state.stack) state.stack
       tableC = table $ intercalate " " $ reverse $ (\(id /\ x) -> portRow (show id) ("•")) <$> uniqueStack
       stackNodes =
-        [ global [ Global.RankDir Global.FromLeft ]
+        [ global [ Global.RankDir Global.FromLeft, Global.Concentrate true ]
         , node "stack" [ Node.Shape Node.Plain, Node.htmlLabel tableC ]
         ]
       (edges /\ nestedNodes) = unzip $ (\stack' -> edgeToHeap state stack') <$> uniqueStack
