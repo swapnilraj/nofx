@@ -14,7 +14,7 @@ import React.Basic.DOM as R
 import React.Basic.Events (handler_)
 import React.Basic.Hooks (ReactComponent, component, element, empty)
 
-import Compiler (GmState, emptyGmState)
+import Compiler (GmState, Instruction(..), emptyGmState)
 
 data Carousel a = Carousel (List a) a (List a)
 
@@ -61,6 +61,10 @@ mkCarousel = do
 emptyCarousel :: Carousel (GmState /\ String)
 emptyCarousel = Carousel Nil (emptyGmState /\ "") Nil
 
+renderInstruction :: Instruction -> String
+renderInstruction (Casejump _) = "CaseJump"
+renderInstruction ins = show ins
+
 mkCarouselCode :: Effect (ReactComponent { carousel :: Carousel (GmState /\ String) } )
 mkCarouselCode = do
   currentInstruction <- mkCurrentInstruction
@@ -76,7 +80,7 @@ mkCurrentInstruction :: Effect (ReactComponent { carousel :: Carousel (GmState /
 mkCurrentInstruction = component "CurrentInstruction" \{ carousel } -> React.do
                        let (Carousel bef _ _) = carousel
                        let instructions = maybe Nil (fst >>> _.code) $ last bef
-                       let curr = maybe "" show $ head instructions
+                       let curr = maybe "" renderInstruction $ head instructions
                        pure $ R.h3_ [ R.text curr ]
 
 
@@ -84,7 +88,7 @@ mkNextInstruction :: Effect (ReactComponent { carousel :: Carousel (GmState /\ S
 mkNextInstruction = component "NextInstruction" \{ carousel } -> React.do
                     let (Carousel _ curr _) = carousel
                     let instructions = (fst >>> _.code) curr
-                    let currInstruction = maybe "" show $ head instructions
+                    let currInstruction = maybe "" renderInstruction $ head instructions
                     pure $ R.h3_ [ R.text currInstruction ]
 
 mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel (GmState /\ String) } )
