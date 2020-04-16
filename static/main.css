@@ -50,6 +50,12 @@ button {
   justify-content: flex-end;
 }
 
+.carousel-code {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
 .carousel-img-container {
   height: 100%;
   display: flex;

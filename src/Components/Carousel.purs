@@ -62,11 +62,30 @@ emptyCarousel :: Carousel (GmState /\ String)
 emptyCarousel = Carousel Nil (emptyGmState /\ "") Nil
 
 mkCarouselCode :: Effect (ReactComponent { carousel :: Carousel (GmState /\ String) } )
-mkCarouselCode = component "CarouselCode" \{ carousel } -> React.do
-                 let (Carousel bef _ _) = carousel
-                 let instructions = maybe Nil (fst >>> _.code) $ last bef
-                 let curr = maybe "" show $ head instructions
-                 pure $ R.h3_ [ R.text curr ]
+mkCarouselCode = do
+  currentInstruction <- mkCurrentInstruction
+  nextInstruction <- mkNextInstruction
+  component "CodeContainer" \{ carousel } -> React.do
+    pure $ R.div { children: [ element currentInstruction { carousel }
+                             , element nextInstruction { carousel }
+                             ]
+                 , className: "carousel-code"
+                 }
+
+mkCurrentInstruction :: Effect (ReactComponent { carousel :: Carousel (GmState /\ String) } )
+mkCurrentInstruction = component "CurrentInstruction" \{ carousel } -> React.do
+                       let (Carousel bef _ _) = carousel
+                       let instructions = maybe Nil (fst >>> _.code) $ last bef
+                       let curr = maybe "" show $ head instructions
+                       pure $ R.h3_ [ R.text curr ]
+
+
+mkNextInstruction :: Effect (ReactComponent { carousel :: Carousel (GmState /\ String) } )
+mkNextInstruction = component "NextInstruction" \{ carousel } -> React.do
+                    let (Carousel _ curr _) = carousel
+                    let instructions = (fst >>> _.code) curr
+                    let currInstruction = maybe "" show $ head instructions
+                    pure $ R.h3_ [ R.text currInstruction ]
 
 mkCarouselImg :: Effect (ReactComponent { carousel :: Carousel (GmState /\ String) } )
 mkCarouselImg = component "CarouselImg" \{ carousel } -> React.do
